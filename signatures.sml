@@ -14,7 +14,6 @@ signature ASSERTION = sig
     datatype ass = t | f | imply of ass * ass
         | less of EXP.exp * EXP.exp | eq of EXP.exp * EXP.exp
     
-    (* syntactic sugar per or not and... *)
     val not : ass -> ass
     val orr : ass -> ass -> ass
     val andd : ass -> ass -> ass
