@@ -6,6 +6,7 @@ signature EXPRESSION = sig
     val expn : exp -> int -> exp
     val subst : exp -> string -> exp -> exp
     val toString : exp -> string
+    val sEq : exp -> exp -> bool
 end
 
 signature ASSERTION = sig

@@ -16,6 +16,14 @@ structure Exp :> EXPRESSION = struct
         | subst (inv exp) name new = inv (subst exp name new)
 
     fun toString _ = "welp" (* da implementare *)
+
+    fun sEq (k n1) (k n2) = n1 = n2
+        | sEq (var str1) (var str2) = String.compare (str1, str2) = EQUAL
+        | sEq (plus (exp1, exp2)) (plus (exp3, exp4)) = sEq exp1 exp3 andalso sEq exp2 exp4
+        | sEq (times (exp1, exp2)) (times (exp3, exp4)) = sEq exp1 exp3 andalso sEq exp2 exp4
+        | sEq (neg exp1) (neg exp2) = sEq exp1 exp2
+        | sEq (inv exp1) (inv exp2) = sEq exp1 exp2
+        | sEq _ _ = false
 end
 
 structure Ass :> ASSERTION = struct
@@ -26,11 +34,33 @@ structure Ass :> ASSERTION = struct
 
     fun not ass = imply (ass, f)
 
+    fun isNot (imply (ass, f) : ass) : ass option = SOME ass 
+        | isNot _ = NONE
+
     fun orr ass1 ass2 = imply (not ass1, ass2)
 
+    fun isOrr (imply (ass1, ass2) : ass) : (ass * ass) option = ( case isNot ass1 of 
+                                                                    SOME assn => SOME (assn, ass2)
+                                                                    | NONE => NONE )
+        | isOrr _ = NONE
+
     fun andd ass1 ass2 = not (imply (ass1, not ass2))
+
+    fun isAndd (imply (ass1, ass2) : ass) : (ass * ass) option = ( case isNot ass2 of 
+                                                                    SOME assn => SOME (ass1, assn)
+                                                                    | NONE => NONE )
+        | isAndd _ = NONE
     
     fun more exp1 exp2 = not (orr (less (exp1, exp1)) (eq (exp1, exp2)))
+
+    fun isMore (ass : ass) : (EXP.exp * EXP.exp) option = 
+        ( case isNot ass of 
+            SOME assn => ( case isOrr assn of
+                            SOME ((less (exp1, exp2)), 
+                                    (eq (exp3, exp4))) => if EXP.sEq exp1 exp3 andalso EXP.sEq exp2 exp4
+                                                        then SOME (exp1, exp2) else NONE
+                            | _ => NONE )
+            | NONE => NONE )
 
     fun subst t _ _ = t
         | subst f _ _ = f
