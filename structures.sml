@@ -68,7 +68,28 @@ structure Ass :> ASSERTION = struct
         | subst (less (exp1, exp2)) name new = less (EXP.subst exp1 name new, EXP.subst exp2 name new)
         | subst (eq (exp1, exp2)) name new = eq (EXP.subst exp1 name new, EXP.subst exp2 name new)
 
-    fun toString _ = "welp" (* da implementare *)
+    fun toString ass = 
+        ( case isNot ass of 
+            SOME assn => "¬( " ^ toString assn ^ " )"
+            | NONE => 
+                ( case isOrr ass of 
+                    SOME (ass1, ass2) => "( " ^ toString ass1 ^ " ) ∨ ( " ^ toString ass2 ^ " )" 
+                    | NONE => 
+                        ( case isAndd ass of
+                            SOME (ass1, ass2) => "( " ^ toString ass1 ^ " ) ∧ ( " ^ toString ass2 ^ " )"
+                            | NONE => 
+                                ( case isMore ass of
+                                    SOME (exp1, exp2) => "( " ^ EXP.toString exp1 ^ " ) > ( " ^ EXP.toString exp2 ^ " )" 
+                                    | NONE => 
+                                        ( case ass of 
+                                            t => "TRUE"
+                                            | f => "FALSE"
+                                            | imply (ass1, ass2) => "( " ^ toString ass1 ^ " ) ⊃ ( " ^ toString ass2 ^ " )"
+                                            | less (exp1, exp2) => "( " ^ EXP.toString exp1 ^ " ) < ( " ^ EXP.toString exp2 ^ " )"
+                                            | eq (exp1, exp2) => "( " ^ EXP.toString exp1 ^ " ) = ( " ^ EXP.toString exp2 ^ " )"
+                                            )))))
+
+    fun parse _ = t (* da implementare *)
 end
 
 structure Imp :> IMPERATIVE = struct
@@ -79,4 +100,12 @@ structure Imp :> IMPERATIVE = struct
         | var_is_in of string * program * program | assign of string * ASS.EXP.exp
     
     fun toString _ = "welp" (* da implementare *)
+
+    fun parse _ =  skip (* da implementare *)
 end
+
+(* structure Hoare : LOGIC = struct
+    structure IMP = Imp
+
+
+end *)

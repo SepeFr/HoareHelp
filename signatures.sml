@@ -21,6 +21,7 @@ signature ASSERTION = sig
     val more : EXP.exp -> EXP.exp -> ass
     val subst : ass -> string -> EXP.exp -> ass
     val toString : ass -> string
+    val parse : string -> ass
 end
 
 signature IMPERATIVE = sig
@@ -31,4 +32,17 @@ signature IMPERATIVE = sig
         | var_is_in of string * program * program | assign of string * ASS.EXP.exp
     
     val toString : program -> string
+    val parse : string -> program
+end
+
+signature LOGIC = sig
+    structure IMP : IMPERATIVE
+
+    datatype logic_rule = TRUTH | FALSEHOOD | STRENGTHENING | WEAKENING | AND | OR 
+    datatype program_rule = IF | WHILE | ASSIGN | SKIP | COMPOSE
+    datatype rule = logic of logic_rule | program of program_rule
+    
+    val precond : IMP.program -> IMP.ASS.ass -> IMP.ASS.ass -> IMP.ASS.ass
+    val step : IMP.program * IMP.ASS.ass -> IMP.ASS.ass option -> IMP.program * IMP.ASS.ass
+    val ask : unit -> IMP.ASS.ass
 end
