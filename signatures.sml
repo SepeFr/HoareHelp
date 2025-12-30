@@ -7,6 +7,7 @@ signature EXPRESSION = sig
     val subst : exp -> string -> exp -> exp
     val toString : exp -> string
     val sEq : exp -> exp -> bool
+    val parse : string -> exp
 end
 
 signature ASSERTION = sig
@@ -21,6 +22,7 @@ signature ASSERTION = sig
     val more : EXP.exp -> EXP.exp -> ass
     val subst : ass -> string -> EXP.exp -> ass
     val toString : ass -> string
+    val sEq : ass -> ass -> bool
     val parse : string -> ass
 end
 
@@ -29,7 +31,7 @@ signature IMPERATIVE = sig
 
     datatype program = skip | cons of program * program 
         | if_then_else of ASS.EXP.exp * program * program | while_do of ASS.ass * program 
-        | var_is_in of string * program * program | assign of string * ASS.EXP.exp
+        | assign of string * ASS.EXP.exp
     
     val toString : program -> string
     val parse : string -> program
@@ -40,9 +42,10 @@ signature LOGIC = sig
 
     datatype logic_rule = TRUTH | FALSEHOOD | STRENGTHENING | WEAKENING | AND | OR 
     datatype program_rule = IF | WHILE | ASSIGN | SKIP | COMPOSE
-    datatype rule = logic of logic_rule | program of program_rule
+    datatype rule = logic of logic_rule | prog of program_rule
     
-    val precond : IMP.program -> IMP.ASS.ass -> IMP.ASS.ass -> IMP.ASS.ass
-    val step : IMP.program * IMP.ASS.ass -> IMP.ASS.ass option -> IMP.program * IMP.ASS.ass
-    val ask : unit -> IMP.ASS.ass
+    val precond : IMP.program -> IMP.ASS.ass -> IMP.ASS.ass -> unit
+    val step : IMP.program * IMP.ASS.ass -> IMP.program * IMP.ASS.ass
+    val ask : unit -> rule * IMP.ASS.ass option
+
 end

@@ -24,6 +24,8 @@ structure Exp :> EXPRESSION = struct
         | sEq (neg exp1) (neg exp2) = sEq exp1 exp2
         | sEq (inv exp1) (inv exp2) = sEq exp1 exp2
         | sEq _ _ = false
+
+    fun parse _ = k 0 (* da implementare *)
 end
 
 structure Ass :> ASSERTION = struct
@@ -79,17 +81,26 @@ structure Ass :> ASSERTION = struct
                             SOME (ass1, ass2) => "( " ^ toString ass1 ^ " ) ∧ ( " ^ toString ass2 ^ " )"
                             | NONE => 
                                 ( case isMore ass of
-                                    SOME (exp1, exp2) => "( " ^ EXP.toString exp1 ^ " ) > ( " ^ EXP.toString exp2 ^ " )" 
+                                    SOME (exp1, exp2) => EXP.toString exp1 ^ " > " ^ EXP.toString exp2
                                     | NONE => 
                                         ( case ass of 
                                             t => "TRUE"
                                             | f => "FALSE"
                                             | imply (ass1, ass2) => "( " ^ toString ass1 ^ " ) ⊃ ( " ^ toString ass2 ^ " )"
-                                            | less (exp1, exp2) => "( " ^ EXP.toString exp1 ^ " ) < ( " ^ EXP.toString exp2 ^ " )"
-                                            | eq (exp1, exp2) => "( " ^ EXP.toString exp1 ^ " ) = ( " ^ EXP.toString exp2 ^ " )"
+                                            | less (exp1, exp2) => EXP.toString exp1 ^ " < " ^ EXP.toString exp2
+                                            | eq (exp1, exp2) => EXP.toString exp1 ^ " = " ^ EXP.toString exp2
                                             )))))
 
+
+
     fun parse _ = t (* da implementare *)
+
+    fun sEq t t = true
+        | sEq f f = true
+        | sEq (imply (ass1, ass2)) (imply (ass3, ass4)) = sEq ass1 ass3 andalso sEq ass2 ass4 
+        | sEq (less (exp1, exp2)) (less (exp3, exp4)) = EXP.sEq exp1 exp3 andalso EXP.sEq exp2 exp4
+        | sEq (eq (exp1, exp2)) (eq (exp3, exp4)) = EXP.sEq exp1 exp3 andalso EXP.sEq exp2 exp4
+        | sEq _ _ = false
 end
 
 structure Imp :> IMPERATIVE = struct
@@ -97,15 +108,34 @@ structure Imp :> IMPERATIVE = struct
 
     datatype program = skip | cons of program * program 
         | if_then_else of ASS.EXP.exp * program * program | while_do of ASS.ass * program 
-        | var_is_in of string * program * program | assign of string * ASS.EXP.exp
+        | assign of string * ASS.EXP.exp
     
     fun toString _ = "welp" (* da implementare *)
 
     fun parse _ =  skip (* da implementare *)
 end
 
-(* structure Hoare : LOGIC = struct
+structure Hoare :> LOGIC = struct
     structure IMP = Imp
 
+    datatype logic_rule = TRUTH | FALSEHOOD | STRENGTHENING | WEAKENING | AND | OR 
+    datatype program_rule = IF | WHILE | ASSIGN | SKIP | COMPOSE
+    datatype rule = logic of logic_rule | prog of program_rule
 
-end *)
+    fun step (IMP.skip, start_assertion) = (IMP.skip, start_assertion) (* da implementare *)
+        | step (IMP.cons (prog1, prog2), start_assertion) = (IMP.skip, start_assertion)
+        | step (IMP.if_then_else (exp1, prog1, prog2), start_assertion) = (IMP.skip, start_assertion)
+        | step (IMP.while_do (exp, sub), start_assertion) = (IMP.skip, start_assertion)
+        | step (IMP.assign (name, exp), start_assertion) = (IMP.skip, start_assertion)
+
+    fun precond IMP.skip pre post = 
+        if IMP.ASS.sEq pre post 
+            then () 
+            else let val (_ : IMP.program, new : IMP.ASS.ass) = step (IMP.skip, post)
+                                            in precond IMP.skip pre new end
+        | precond program pre post = let val (prog2 : IMP.program, new : IMP.ASS.ass) = step (program, post)
+                                            in precond prog2 pre new end
+
+    fun ask () = (logic TRUTH, NONE) (* da implementare *)
+
+end
