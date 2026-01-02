@@ -43,9 +43,9 @@ signature LOGIC = sig
     datatype logic_rule = TRUTH | FALSEHOOD | STRENGTHENING | WEAKENING | AND | OR 
     datatype program_rule = IF | WHILE | ASSIGN | SKIP | COMPOSE
     datatype rule = logic of logic_rule | prog of program_rule
-    
-    val precond : IMP.program -> IMP.ASS.ass -> IMP.ASS.ass -> unit
-    val step : IMP.program * IMP.ASS.ass -> IMP.program * IMP.ASS.ass
-    val ask : unit -> rule * IMP.ASS.ass option
 
+    exception DerivationError of string
+    
+    val derive : IMP.program -> IMP.ASS.ass -> IMP.ASS.ass -> unit
+    val parallel : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list -> unit
 end

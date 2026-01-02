@@ -122,20 +122,37 @@ structure Hoare :> LOGIC = struct
     datatype program_rule = IF | WHILE | ASSIGN | SKIP | COMPOSE
     datatype rule = logic of logic_rule | prog of program_rule
 
-    fun step (IMP.skip, start_assertion) = (IMP.skip, start_assertion) (* da implementare *)
+    exception DerivationError of string
+
+     fun print_goal (progg : IMP.program, pre : IMP.ASS.ass, post : IMP.ASS.ass, idx : int) : unit = 
+        TextIO.print ((Int.toString idx) ^ " )\t{" ^ (IMP.ASS.toString pre) ^ "} " 
+                        ^ (IMP.toString progg) ^ " {" ^ (IMP.ASS.toString post) ^ "}\n")
+
+    fun subgoals (nil : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list) (_ : int) : unit = ()
+        | subgoals ((prg, pre, post) :: l) idx = (print_goal (prg, pre, post, idx); subgoals l (idx + 1))
+
+    fun next_goal (der_list : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list) : int = 
+        ( subgoals der_list 1;
+        TextIO.print "Select next goal: ";
+        valOf (Int.fromString (valOf (TextIO.inputLine TextIO.stdIn)))
+        handle Option => let val _ : unit = TextIO.print "Input error, try again\n"
+                            in next_goal der_list end )
+
+    fun derive IMP.skip pre post = 
+        if IMP.ASS.sEq pre post 
+            then () 
+            else let val (_ : IMP.program, new : IMP.ASS.ass) = step (IMP.skip, post)
+                                            in derive IMP.skip pre new end
+        | derive program pre post = let val (prog2 : IMP.program, new : IMP.ASS.ass) = step (program, post)
+                                            in derive prog2 pre new end
+
+    and step (IMP.skip, start_assertion) = (IMP.skip, start_assertion) (* da implementare *)
         | step (IMP.cons (prog1, prog2), start_assertion) = (IMP.skip, start_assertion)
         | step (IMP.if_then_else (exp1, prog1, prog2), start_assertion) = (IMP.skip, start_assertion)
         | step (IMP.while_do (exp, sub), start_assertion) = (IMP.skip, start_assertion)
         | step (IMP.assign (name, exp), start_assertion) = (IMP.skip, start_assertion)
 
-    fun precond IMP.skip pre post = 
-        if IMP.ASS.sEq pre post 
-            then () 
-            else let val (_ : IMP.program, new : IMP.ASS.ass) = step (IMP.skip, post)
-                                            in precond IMP.skip pre new end
-        | precond program pre post = let val (prog2 : IMP.program, new : IMP.ASS.ass) = step (program, post)
-                                            in precond prog2 pre new end
-
-    fun ask () = (logic TRUTH, NONE) (* da implementare *)
-
+    (* fun ask () : rule * IMP.ASS.ass option = (logic TRUTH, NONE) da implementare *)
+    (* fun print () : unit = () *)
+    and parallel der_list = ()
 end
