@@ -1,2 +1,4 @@
 signatures.sml
+utils.sml
 structures.sml
+logic.sml

@@ -1,3 +1,7 @@
+signature UTILS = sig
+    val trim_space : string -> string
+end
+
 signature EXPRESSION = sig
     datatype exp = k of int | var of string 
         | plus of exp * exp | times of exp * exp
@@ -6,8 +10,7 @@ signature EXPRESSION = sig
     val expn : exp -> int -> exp
     val subst : exp -> string -> exp -> exp
     val toString : exp -> string
-    val sEq : exp -> exp -> bool
-    val parse : string -> exp
+    val parse : string -> exp option
 end
 
 signature ASSERTION = sig
@@ -22,30 +25,23 @@ signature ASSERTION = sig
     val more : EXP.exp -> EXP.exp -> ass
     val subst : ass -> string -> EXP.exp -> ass
     val toString : ass -> string
-    val sEq : ass -> ass -> bool
-    val parse : string -> ass
+    val parse : string -> ass option
 end
 
 signature IMPERATIVE = sig
     structure ASS : ASSERTION
 
-    datatype program = skip | cons of program * program 
-        | if_then_else of ASS.EXP.exp * program * program | while_do of ASS.ass * program 
-        | assign of string * ASS.EXP.exp
+    datatype program = skip | assign of string * ASS.EXP.exp | cons of program * program 
+        | if_then_else of ASS.ass * program * program | while_do of ASS.ass * program 
     
     val toString : program -> string
-    val parse : string -> program
+    val parse : string -> program option
 end
 
 signature LOGIC = sig
     structure IMP : IMPERATIVE
-
-    datatype logic_rule = TRUTH | FALSEHOOD | STRENGTHENING | WEAKENING | AND | OR 
-    datatype program_rule = IF | WHILE | ASSIGN | SKIP | COMPOSE
-    datatype rule = logic of logic_rule | prog of program_rule
-
+    
     exception DerivationError of string
     
     val derive : IMP.program -> IMP.ASS.ass -> IMP.ASS.ass -> unit
-    val parallel : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list -> unit
 end
