@@ -32,14 +32,14 @@ structure Ass :> ASSERTION = struct
 
     fun orr ass1 ass2 = imply (not ass1, ass2)
 
-    fun isOrr (imply (ass1, ass2) : ass) : (ass * ass) option = ( case isNot ass1 of 
+    fun isOrr (imply (ass1, ass2)) = ( case isNot ass1 of 
                                                                     SOME assn => SOME (assn, ass2)
                                                                     | NONE => NONE )
         | isOrr _ = NONE
 
     fun andd ass1 ass2 = not (imply (ass1, not ass2))
 
-    fun isAndd (imply (ass1, ass2) : ass) : (ass * ass) option = ( case isNot ass2 of 
+    fun isAndd (imply (ass1, ass2)) = ( case isNot ass2 of 
                                                                     SOME assn => SOME (ass1, assn)
                                                                     | NONE => NONE )
         | isAndd _ = NONE

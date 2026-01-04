@@ -21,7 +21,9 @@ signature ASSERTION = sig
     
     val not : ass -> ass
     val orr : ass -> ass -> ass
+    val isOrr : ass -> (ass * ass) option
     val andd : ass -> ass -> ass
+    val isAndd : ass -> (ass * ass) option
     val more : EXP.exp -> EXP.exp -> ass
     val subst : ass -> string -> EXP.exp -> ass
     val toString : ass -> string

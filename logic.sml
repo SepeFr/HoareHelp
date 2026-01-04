@@ -1,18 +1,22 @@
-structure Hoare :> LOGIC = struct
+structure Hoare : LOGIC = struct
     structure IMP = Imp
 
-    datatype logic_rule = TRUTH | FALSEHOOD | STRENGTHENING | WEAKENING | AND | OR 
-    datatype program_rule = IF | WHILE | ASSIGN | COMPOSE (* la regola skip non si può usare, serve per terminare il programma *)
-    datatype rule = logic of logic_rule | prog of program_rule
+    datatype logic_rule = TRUTH | FALSEHOOD | WEAKENING | AND | OR 
+    datatype rule = logic of logic_rule | PROGRAM
 
     exception DerivationError of string
 
-    fun print_goal (prg : IMP.program, pre : IMP.ASS.ass, post : IMP.ASS.ass, idx : int) : unit = 
-        TextIO.print ((Int.toString idx) ^ " )\t{" ^ (IMP.ASS.toString pre) ^ "} " 
-                        ^ (IMP.toString prg) ^ " {" ^ (IMP.ASS.toString post) ^ "}\n")
+    fun string_goal (prg : IMP.program, pre : IMP.ASS.ass, post : IMP.ASS.ass) : string =
+        "{" ^ (IMP.ASS.toString pre) ^ "} " ^ (IMP.toString prg) ^ " {" ^ (IMP.ASS.toString post) ^ "}"
+
+    fun consume_goal (triple : IMP.program * IMP.ASS.ass * IMP.ASS.ass) (idx : int) : unit = 
+        TextIO.print ((Int.toString idx) ^ " )\t" ^ string_goal triple ^ "\n")
+              
+    fun current_goal (prg : IMP.program) (pre : IMP.ASS.ass) (post : IMP.ASS.ass) : unit = 
+        TextIO.print ("Current subgoal:\t" ^ string_goal (prg, pre, post) ^ "\n")
 
     fun subgoals (nil : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list) (_ : int) : unit = ()
-        | subgoals ((prg, pre, post) :: l) idx = (print_goal (prg, pre, post, idx); subgoals l (idx + 1))
+        | subgoals (node :: l) idx = (consume_goal node idx; subgoals l (idx + 1))
 
     fun numeric_input () : int = valOf (Int.fromString (valOf (TextIO.inputLine TextIO.stdIn)))
                                 handle Option.Option => ( TextIO.print "Wrong input, try again\n";
@@ -30,100 +34,164 @@ structure Hoare :> LOGIC = struct
 
     fun rule_input () : rule = 
         let val str : string = ( TextIO.print ("Choose derivation rule to follow, from\n"
-                                            ^ "TRUTH, FALSEHOOD, STRENGTHENING, WEAKENING, AND, OR,\n"
-                                            ^ "IF, WHILE, ASSIGN, COMPOSE: ");
+                                            ^ "TRUTH, FALSEHOOD, WEAKENING,\n"
+                                            ^ "AND, OR, PROGRAM: ");
                                 valOf (TextIO.inputLine TextIO.stdIn) )
-            val upper : string = String.map Char.toUpper str
-            val trimmed : string = Utils.trim_space upper
+            val upper_trimmed : string = Utils.trim_space (String.map Char.toUpper str)
         in 
-            case trimmed of
+            case upper_trimmed of
                 "TRUTH" => logic TRUTH
                 | "FALSEHOOD" => logic FALSEHOOD
-                | "STRENGTHENING" => logic STRENGTHENING
                 | "WEAKENING" => logic WEAKENING
                 | "AND" => logic AND
                 | "OR" => logic OR
-                | "IF" => prog IF
-                | "WHILE" => prog WHILE
-                | "ASSIGN" => prog ASSIGN
-                | "COMPOSE" => prog COMPOSE
+                | "PROGRAM" => PROGRAM
                 | _ => (TextIO.print "Undefined rule, try again\n"; rule_input ())
         end
 
     fun assertion_input () : IMP.ASS.ass = 
-        let val input : string = valOf (TextIO.inputLine TextIO.stdIn)
-        in valOf (IMP.ASS.parse input)
-            handle Option.Option =>  ( TextIO.print "Wrong input, try again\n";
+        valOf (IMP.ASS.parse (valOf (TextIO.inputLine TextIO.stdIn)))
+            handle Option.Option =>  ( TextIO.print "Unparseable assertion, try again\n";
                                                             assertion_input () )
-        end
 
     fun interact (fragment : IMP.program) (r : IMP.ASS.ass) : rule * IMP.ASS.ass option = 
-        let val r_input : rule = rule_input()
-        in 
-            case r_input of
-                prog IF => ( case fragment of
-                                IMP.if_then_else (q, c1, c2) => 
-                                    let val a_input : IMP.ASS.ass = ( TextIO.print ("Please provide a P such that"
-                                                        ^ "1) {P ∧ " ^ IMP.ASS.toString q ^ "} " ^ IMP.toString c1 ^ "{" ^ IMP.ASS.toString r ^ "}\n"
-                                                        ^ "2) {P ∧ " ^ IMP.ASS.toString (IMP.ASS.not q) ^ "} " ^ IMP.toString c2 ^ "{" ^ IMP.ASS.toString r ^ "}\n");
+        case rule_input () of
+            PROGRAM => ( case fragment of
+                            IMP.if_then_else (q, c1, c2) => 
+                                let val a_input : IMP.ASS.ass = ( TextIO.print ("Please provide any P such that\n"
+                                                    ^ "1)\t{P ∧ " ^ IMP.ASS.toString q ^ "} " ^ IMP.toString c1 ^ " {" ^ IMP.ASS.toString r ^ "}\n"
+                                                    ^ "2)\t{P ∧ " ^ IMP.ASS.toString (IMP.ASS.not q) ^ "} " ^ IMP.toString c2 ^ " {" ^ IMP.ASS.toString r ^ "}:\n");
+                                                    assertion_input () )
+                                in (PROGRAM, SOME a_input) end
+                            | IMP.while_do (q, c) => 
+                                    let val a_input : IMP.ASS.ass = ( TextIO.print ("Please provide any P such that\n"
+                                                        ^ "1)\t{P ∧ " ^ IMP.ASS.toString q ^ "} " ^ IMP.toString c ^ " {P}\n"
+                                                        ^ "2)\t{P ∧ " ^ IMP.ASS.toString (IMP.ASS.not q) ^ "} skip {" ^ IMP.ASS.toString r ^ "}:\n");
                                                         assertion_input () )
-                                    in (r_input, SOME a_input) end
-                                | _ => ( TextIO.print "Unapplicable rule, try again\n";
-                                        interact fragment r)
-                            )
-                | prog WHILE => ( case fragment of
-                                    IMP.while_do (q, c) => 
-                                        let val a_input : IMP.ASS.ass = ( TextIO.print ("Please provide a P such that"
-                                                            ^ "{P ∧ " ^ IMP.ASS.toString q ^ "} " ^ IMP.toString c ^ "{" ^ IMP.ASS.toString r ^ "}\n");
-                                                            assertion_input () )
-                                        in (r_input, SOME a_input) end
-                                    | _ => ( TextIO.print "Unapplicable rule, try again\n";
-                                            interact fragment r)
+                                    in (PROGRAM, SOME a_input) end
+                            | _ => (PROGRAM, NONE)
+                        )
+            | logic TRUTH => ( case r of 
+                                IMP.ASS.t => 
+                                    let val a_input : IMP.ASS.ass = ( TextIO.print "Please provide any P such that P is an assertion:\n";
+                                                        assertion_input () )
+                                    in (logic TRUTH, SOME a_input) end
+                                | _ => ( TextIO.print "Unapplicable rule, try again\n"; interact fragment r) 
                                 )
-                | prog ASSIGN => ( case fragment of
-                                    IMP.assign (_, _) => (r_input, NONE)
-                                    | _ => ( TextIO.print "Unapplicable rule, try again\n";
-                                            interact fragment r)
-                                )
-                | prog COMPOSE => ( case fragment of
-                                    IMP.cons (_, _) => (r_input, NONE)
-                                    | _ => ( TextIO.print "Unapplicable rule, try again\n";
-                                            interact fragment r)
-                                )
-                | _ => (r_input, NONE) (* regole logiche si possono sempre usare *)
+            | logic FALSEHOOD => (logic FALSEHOOD, NONE)
+            | logic WEAKENING => let val a_input : IMP.ASS.ass = ( TextIO.print ("Please provide any P such that\n" 
+                                                                                    ^ "P ⊃ " ^ IMP.ASS.toString r ^ ":\n");
+                                                                        assertion_input () )
+                                    in (logic WEAKENING, SOME a_input) end
+            | logic AND => let val a_input : IMP.ASS.ass = ( TextIO.print ("Please provide any P such that P ⊃ Qi,\n" 
+                                                                        ^ "considering " ^ IMP.ASS.toString r ^ " as a conjunction of Qis:\n");
+                                                                        assertion_input () )
+                            in (logic AND, SOME a_input) end
+            | logic OR => let val a_input : IMP.ASS.ass = ( TextIO.print ("Please provide any P such that\n" 
+                                                                        ^ "Pi ⊃ " ^ IMP.ASS.toString r ^ ",\n"
+                                                                        ^ "considering P as a disjunction of Pis:\n");
+                                                                        assertion_input () )
+                            in (logic OR, SOME a_input) end
+
+    fun distribute_and (prg : IMP.program) (pre : IMP.ASS.ass) (post : IMP.ASS.ass) : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list  = 
+        let val result : (IMP.ASS.ass * IMP.ASS.ass) option = IMP.ASS.isAndd post
+        in 
+            case result of 
+                SOME (l, r) => (distribute_and prg pre l) @ (distribute_and prg pre r)
+                | NONE => [(prg, pre, post)]
+        end
+    
+    fun distribute_or (prg : IMP.program) (pre : IMP.ASS.ass) (post : IMP.ASS.ass) : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list  = 
+        let val result : (IMP.ASS.ass * IMP.ASS.ass) option = IMP.ASS.isOrr pre
+        in 
+            case result of 
+                SOME (l, r) => (distribute_or prg l post) @ (distribute_or prg r post)
+                | NONE => [(prg, pre, post)]
         end
 
     fun derive IMP.skip pre post =
         if pre = post 
-            then () 
-            else let val (_ : IMP.program, new : IMP.ASS.ass) = step (IMP.skip, post)
-                                            in derive IMP.skip pre new end
-        | derive program pre post = let val (prog2 : IMP.program, new : IMP.ASS.ass) = step (program, post)
-                                            in derive prog2 pre new end
+            then TextIO.print "QED\n"
+            else derive IMP.skip pre (step IMP.skip pre post)
+        | derive program pre post = derive IMP.skip pre (step program pre post)
 
-    and step (prg : IMP.program, post : IMP.ASS.ass) : IMP.program * IMP.ASS.ass = (* da implementare *)
-            let val (rule : rule, help : IMP.ASS.ass option) = interact prg post 
+    and step (prg : IMP.program) (pre : IMP.ASS.ass) (post : IMP.ASS.ass): IMP.ASS.ass = (* da implementare, print current subgoal a ogni an unapplicable rulechiamata *)
+            let val (rule : rule, help : IMP.ASS.ass option) = (current_goal prg pre post; interact prg post) 
             in 
                 case rule of
-                    prog IF => raise Fail "Not implemented\n"
-                    | prog WHILE => raise Fail "Not implemented\n"
-                    | prog ASSIGN => raise Fail "Not implemented\n"
-                    | prog COMPOSE => raise Fail "Not implemented\n"
-                    | logic TRUTH => raise Fail "Not implemented\n"
-                    | logic FALSEHOOD => raise Fail "Not implemented\n"
-                    | logic STRENGTHENING => raise Fail "Not implemented\n"
-                    | logic WEAKENING => raise Fail "Not implemented\n"
-                    | logic AND => raise Fail "Not implemented\n"
-                    | logic OR => raise Fail "Not implemented\n"
+                    PROGRAM => ( case prg of 
+                                IMP.skip => post
+                                | IMP.assign (x, e) => IMP.ASS.subst post x e
+                                | IMP.cons (c1, c2) => step c1 pre (step c2 pre post)
+                                | IMP.if_then_else (q, c1, c2) => ( case help of
+                                                                        SOME p => (parallel [(c1, IMP.ASS.andd p q, post),
+                                                                                                (c2, IMP.ASS.andd p (IMP.ASS.not q), post)]; p) 
+                                                                        | NONE => raise DerivationError "Unknown precondition for IF derivation" ) 
+                                | IMP.while_do (q, c) => ( case help of 
+                                                            SOME p => (parallel [(c, IMP.ASS.andd p q, p),
+                                                                                    (IMP.skip, IMP.ASS.andd p (IMP.ASS.not q), post)]; p) 
+                                                            | NONE => raise DerivationError "Unknown precondition for WHILE derivation" ) 
+                                )
+                    | logic TRUTH => ( case post of
+                                        IMP.ASS.t => ( case help of 
+                                                        SOME p => p
+                                                        | NONE => raise DerivationError "Unknown precondition for TRUTH derivation" )
+                                        | _ => raise DerivationError "The program was asked to apply the TRUTH rule where it's inapplicable" )
+                    | logic FALSEHOOD => IMP.ASS.f
+                    | logic WEAKENING => ( case help of 
+                                            SOME p => step prg pre p
+                                            | NONE => raise DerivationError "Unknown precondition for WEAKENING derivation" )
+                    | logic AND => ( case help of 
+                                        SOME p => (parallel (distribute_and prg p post); p)
+                                        | NONE => raise DerivationError "Unknown precondition for AND derivation" )
+                    | logic OR => ( case help of 
+                                        SOME p => (parallel (distribute_or prg p post); p)
+                                        | NONE => raise DerivationError "Unknown precondition for OR derivation" )
             end
 
-    (* fun ask () : rule * IMP.ASS.ass option = (logic TRUTH, NONE) da implementare *)
-    (* fun print () : unit = () *)
-    and parallel (nil : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list) : unit = ()
+    and parallel (nil : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list) : unit = raise DerivationError "The program can't find the next derivation to complete"
+        | parallel ((prg, pre, post) :: nil) = derive prg pre post
         | parallel der_list = 
             let val idx : int = (next_goal der_list) - 1
                 val (prg : IMP.program, pre : IMP.ASS.ass, post : IMP.ASS.ass) = List.nth (der_list, idx)
                 val begin : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list = List.take (der_list, idx)
                 val endd : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list = List.drop (der_list, idx + 1)
             in (derive prg pre post; parallel (begin @ endd)) end
+
+    fun get_program_str () : string = 
+        let val input : string = valOf (TextIO.inputLine TextIO.stdIn)
+        in 
+            case Utils.trim_space input of
+                "ENDPROGRAM" => ""
+                | _ => input ^ " " ^ get_program_str ()
+        end
+
+    fun get_program () : IMP.program =
+        case IMP.parse (get_program_str ()) of
+            SOME p => p
+            | NONE => ("Unparseable program, try again\n"; get_program())
+    
+    fun main () : unit =
+        let val program : IMP.program = (
+                TextIO.print "HoareHelo - Matteo & Francesco 2025\n";
+                TextIO.print "Welcome to the HoareHelp proof helper,\n";
+                TextIO.print "please input a program written in the Imp (While) language,\n";
+                TextIO.print "ending with the line \"ENDPROGRAM\"\n";
+                get_program ()
+            )
+            val pre : IMP.ASS.ass = (
+                TextIO.print "Got it, now please input a precondition for such program:\n";
+                assertion_input ()
+            )
+            val post : IMP.ASS.ass = (
+                TextIO.print "Got it, now please input a postcondition:\n";
+                assertion_input ()
+            )
+        in 
+            (
+                TextIO.print "Great, the proofing subroutine will now be started.\n";
+                derive program pre post
+            )
+        end
+        
 end
