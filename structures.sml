@@ -44,7 +44,7 @@ structure Ass :> ASSERTION = struct
                                                                     | NONE => NONE )
         | isAndd _ = NONE
     
-    fun more exp1 exp2 = not (orr (less (exp1, exp1)) (eq (exp1, exp2)))
+    fun more exp1 exp2 = not (orr (less (exp1, exp2)) (eq (exp1, exp2)))
 
     fun isMore (ass : ass) : (EXP.exp * EXP.exp) option = 
         ( case isNot ass of 

@@ -3,14 +3,18 @@ structure Hoare : LOGIC = struct
 
     datatype logic_rule = TRUTH | FALSEHOOD | WEAKENING | AND | OR 
     datatype rule = logic of logic_rule | PROGRAM
+    (* L'utente deve fornire in input la regola PRECISA da usare o lo facciamo capire al programma?
+        Tanto l'utente, tra tutte le regole speciali, ne può applicare una specifica, che dovrebbe essere
+        controllata comunque dal programma, in caso sarebbe da aggiungere un altro costruttore, niente di che *)
+    (* Mettere skip all'inizio o inserire anche strenghtening? *)
 
     exception DerivationError of string
 
     fun string_goal (prg : IMP.program, pre : IMP.ASS.ass, post : IMP.ASS.ass) : string =
-        "{" ^ (IMP.ASS.toString pre) ^ "} " ^ (IMP.toString prg) ^ " {" ^ (IMP.ASS.toString post) ^ "}"
+        "{" ^ IMP.ASS.toString pre ^ "} " ^ IMP.toString prg ^ " {" ^ IMP.ASS.toString post ^ "}"
 
     fun consume_goal (triple : IMP.program * IMP.ASS.ass * IMP.ASS.ass) (idx : int) : unit = 
-        TextIO.print ((Int.toString idx) ^ " )\t" ^ string_goal triple ^ "\n")
+        TextIO.print (Int.toString idx ^ " )\t" ^ string_goal triple ^ "\n")
               
     fun current_goal (prg : IMP.program) (pre : IMP.ASS.ass) (post : IMP.ASS.ass) : unit = 
         TextIO.print ("Current subgoal:\t" ^ string_goal (prg, pre, post) ^ "\n")
@@ -29,7 +33,7 @@ structure Hoare : LOGIC = struct
         let val return : int = numeric_input ()
         in if return > 0 andalso return <= length der_list
             then return
-            else ( TextIO.print "Input number too high, try again\n"; next_goal der_list) 
+            else ( TextIO.print "Input number out of range, try again\n"; next_goal der_list) 
         end )
 
     fun rule_input () : rule = 
@@ -51,7 +55,7 @@ structure Hoare : LOGIC = struct
 
     fun assertion_input () : IMP.ASS.ass = 
         valOf (IMP.ASS.parse (valOf (TextIO.inputLine TextIO.stdIn)))
-            handle Option.Option =>  ( TextIO.print "Unparseable assertion, try again\n";
+            handle Option.Option => ( TextIO.print "Unparseable assertion, try again\n";
                                                             assertion_input () )
 
     fun interact (fragment : IMP.program) (r : IMP.ASS.ass) : rule * IMP.ASS.ass option = 
@@ -94,23 +98,17 @@ structure Hoare : LOGIC = struct
                             in (logic OR, SOME a_input) end
 
     fun distribute_and (prg : IMP.program) (pre : IMP.ASS.ass) (post : IMP.ASS.ass) : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list  = 
-        let val result : (IMP.ASS.ass * IMP.ASS.ass) option = IMP.ASS.isAndd post
-        in 
-            case result of 
+        case IMP.ASS.isAndd post of 
                 SOME (l, r) => (distribute_and prg pre l) @ (distribute_and prg pre r)
                 | NONE => [(prg, pre, post)]
-        end
     
     fun distribute_or (prg : IMP.program) (pre : IMP.ASS.ass) (post : IMP.ASS.ass) : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list  = 
-        let val result : (IMP.ASS.ass * IMP.ASS.ass) option = IMP.ASS.isOrr pre
-        in 
-            case result of 
+        case IMP.ASS.isOrr pre of 
                 SOME (l, r) => (distribute_or prg l post) @ (distribute_or prg r post)
                 | NONE => [(prg, pre, post)]
-        end
 
     fun derive IMP.skip pre post =
-        if pre = post 
+        if pre = post (* se pretty print ambiguo, uguale su toString *)
             then TextIO.print "QED\n"
             else derive IMP.skip pre (step IMP.skip pre post)
         | derive program pre post = derive IMP.skip pre (step program pre post)
@@ -173,7 +171,7 @@ structure Hoare : LOGIC = struct
     
     fun main () : unit =
         let val program : IMP.program = (
-                TextIO.print "HoareHelo - Matteo & Francesco 2025\n";
+                TextIO.print "HoareHelp - Matteo & Francesco 2025\n";
                 TextIO.print "Welcome to the HoareHelp proof helper,\n";
                 TextIO.print "please input a program written in the Imp (While) language,\n";
                 TextIO.print "ending with the line \"ENDPROGRAM\"\n";
