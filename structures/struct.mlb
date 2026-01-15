@@ -1,4 +1,7 @@
 ../lib/github.com/diku-dk/sml-parse/parse.mlb
+../lib/github.com/diku-dk/sml-parse/simple_token.mlb
+../lib/github.com/diku-dk/sml-parse/char_token.mlb
+../lib/github.com/diku-dk/sml-parse/scan-util.mlb
 ../signatures/sig.mlb
 expression.sml
 assertion.sml
