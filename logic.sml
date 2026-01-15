@@ -1,8 +1,8 @@
 structure Hoare : LOGIC = struct
     structure IMP = Imp
 
-    datatype logic_rule = TRUTH | FALSEHOOD | WEAKENING | AND | OR
-    datatype rule = logic of logic_rule | PROGRAM
+    datatype logic_rule = TRUTH | FALSEHOOD | WEAKENING | STRENGTHENING | AND | OR
+    datatype rule = logic of logic_rule | PROGRAM | BACK
     (* L'utente deve fornire in input la regola PRECISA da usare o lo facciamo capire al programma?
         Tanto l'utente, tra tutte le regole speciali, ne può applicare una specifica, che dovrebbe essere
         controllata comunque dal programma, in caso sarebbe da aggiungere un altro costruttore, niente di che *)
@@ -41,7 +41,7 @@ structure Hoare : LOGIC = struct
 
     fun rule_input () : rule =
         let val str : string = ( TextIO.print ("Choose derivation rule to follow, from\n"
-                                            ^ "TRUTH, FALSEHOOD, WEAKENING,\n"
+                                            ^ "TRUTH, FALSEHOOD, WEAKENING, STRENGTHENING\n"
                                             ^ "AND, OR, PROGRAM: ");
                                 valOf (TextIO.inputLine TextIO.stdIn) )
             val upper_trimmed : string = Utils.trim_space (String.map Char.toUpper str)
@@ -50,6 +50,7 @@ structure Hoare : LOGIC = struct
                 "TRUTH" => logic TRUTH
                 | "FALSEHOOD" => logic FALSEHOOD
                 | "WEAKENING" => logic WEAKENING
+                | "STRENGTHENING" => logic STRENGTHENING
                 | "AND" => logic AND
                 | "OR" => logic OR
                 | "PROGRAM" => PROGRAM
@@ -78,6 +79,7 @@ structure Hoare : LOGIC = struct
                                     in (PROGRAM, SOME a_input) end
                             | _ => (PROGRAM, NONE)
                         )
+            | BACK => (BACK, NONE)
             | logic TRUTH => ( case r of
                                 IMP.ASS.t =>
                                     let val a_input : IMP.ASS.ass = ( TextIO.print "Please provide any P such that P is an assertion:\n";
@@ -87,9 +89,10 @@ structure Hoare : LOGIC = struct
                                 )
             | logic FALSEHOOD => (logic FALSEHOOD, NONE)
             | logic WEAKENING => let val a_input : IMP.ASS.ass = ( TextIO.print ("Please provide any P such that\n"
-                                                                                    ^ "P ⊃ " ^ IMP.ASS.toString r ^ ":\n");
-                                                                        assertion_input () )
+                                                                                 ^ "P ⊃ " ^ IMP.ASS.toString r ^ ":\n");
+                                                                                assertion_input () )
                                     in (logic WEAKENING, SOME a_input) end
+            | logic STRENGTHENING => (logic STRENGTHENING, NONE)
             | logic AND => let val a_input : IMP.ASS.ass = ( TextIO.print ("Please provide any P such that P ⊃ Qi,\n"
                                                                         ^ "considering " ^ IMP.ASS.toString r ^ " as a conjunction of Qis:\n");
                                                                         assertion_input () )
@@ -110,43 +113,60 @@ structure Hoare : LOGIC = struct
                 SOME (l, r) => (distribute_or prg l post) @ (distribute_or prg r post)
                 | NONE => [(prg, pre, post)]
 
-    fun derive IMP.skip pre post =
-        if pre = post (* se pretty print ambiguo, uguale su toString *)
-            then TextIO.print "QED\n"
-            else derive IMP.skip pre (step IMP.skip pre post)
-        | derive program pre post = derive IMP.skip pre (step program pre post)
+    fun derive prog pre post = loop prog pre post nil
 
-    and step (prg : IMP.program) (pre : IMP.ASS.ass) (post : IMP.ASS.ass): IMP.ASS.ass = (* da implementare, print current subgoal a ogni an unapplicable rulechiamata *)
+    and loop (prog : IMP.program) (pre : IMP.ASS.ass) (post : IMP.ASS.ass) (trace : der_chain) : unit =
+        let val (result : IMP.ASS.ass, trace : der_chain) = (step prog pre post trace)
+        in
+            if IMP.ASS.toString pre = IMP.ASS.toString result
+                then TextIO.print "Hooray!!!\n"
+                else (TextIO.print "Derivation failed, try again\n"; loop prog pre post trace)
+        end
+
+    and step (prg : IMP.program) (pre : IMP.ASS.ass) (post : IMP.ASS.ass) (history : der_chain): IMP.ASS.ass * der_chain = (* da implementare, print current subgoal a ogni an unapplicable rulechiamata *)
             let val (rule : rule, help : IMP.ASS.ass option) = (current_goal prg pre post; interact prg post)
+                val next : der_chain = (prg, pre, post)::history
             in
                 case rule of
                     PROGRAM => ( case prg of
-                                IMP.skip => post
-                                | IMP.assign (x, e) => IMP.ASS.subst post x e
-                                | IMP.cons (c1, c2) => step c1 pre (step c2 pre post)
+                                IMP.skip => (post, next)
+                                | IMP.assign (x, e) => (IMP.ASS.subst post x e, next)
+                                | IMP.cons (c1, c2) => let val (res : IMP.ASS.ass, hist : der_chain) = step c2 pre post next
+                                                        in
+                                                            step c1 pre res hist
+                                                        end
                                 | IMP.if_then_else (q, c1, c2) => ( case help of
                                                                         SOME p => (parallel [(c1, IMP.ASS.andd p q, post),
-                                                                                                (c2, IMP.ASS.andd p (IMP.ASS.not q), post)]; p)
+                                                                                                (c2, IMP.ASS.andd p (IMP.ASS.not q), post)]; (p, next))
                                                                         | NONE => raise DerivationError "Unknown precondition for IF derivation" )
                                 | IMP.while_do (q, c) => ( case help of
                                                             SOME p => (parallel [(c, IMP.ASS.andd p q, p),
-                                                                                    (IMP.skip, IMP.ASS.andd p (IMP.ASS.not q), post)]; p)
+                                                                                    (IMP.skip, IMP.ASS.andd p (IMP.ASS.not q), post)]; (p, next))
                                                             | NONE => raise DerivationError "Unknown precondition for WHILE derivation" )
                                 )
+                    | BACK => ( case history of 
+                                (lprg, lpre, lpost) :: rest => (TextIO.print "Reverting back to previous step\n"; step lprg lpre lpost rest)
+                                | nil => (TextIO.print "Nothing to go back to\n"; step prg pre post history) )
                     | logic TRUTH => ( case post of
                                         IMP.ASS.t => ( case help of
-                                                        SOME p => p
+                                                        SOME p => (p, next)
                                                         | NONE => raise DerivationError "Unknown precondition for TRUTH derivation" )
                                         | _ => raise DerivationError "The program was asked to apply the TRUTH rule where it's inapplicable" )
-                    | logic FALSEHOOD => IMP.ASS.f
+                    | logic FALSEHOOD => (IMP.ASS.f, next)
                     | logic WEAKENING => ( case help of
-                                            SOME p => step prg pre p
+                                            SOME p => step prg pre p next
                                             | NONE => raise DerivationError "Unknown precondition for WEAKENING derivation" )
+                    | logic STRENGTHENING => let val (res : IMP.ASS.ass, hist : der_chain) = step prg pre post next
+                                                in 
+                                                    TextIO.print ("Please provide any P such that\n"
+                                                                ^ "P ⊃ " ^ IMP.ASS.toString res ^ ":\n");
+                                                    (assertion_input (), hist)
+                                                end
                     | logic AND => ( case help of
-                                        SOME p => (parallel (distribute_and prg p post); p)
+                                        SOME p => (parallel (distribute_and prg p post); (p, next))
                                         | NONE => raise DerivationError "Unknown precondition for AND derivation" )
                     | logic OR => ( case help of
-                                        SOME p => (parallel (distribute_or prg p post); p)
+                                        SOME p => (parallel (distribute_or prg p post); (p, next))
                                         | NONE => raise DerivationError "Unknown precondition for OR derivation" )
             end
 
