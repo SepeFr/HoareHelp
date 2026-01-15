@@ -14,27 +14,26 @@ structure Exp :> EXPRESSION = struct
         | subst (neg exp) name new = neg (subst exp name new)
         | subst (inv exp) name new = inv (subst exp name new)
 
-  fun normalize (neg (k n)) = k (0.0 - n)
+  fun normalize (neg (k n)) = k (0 - n)
         | normalize (neg (plus (exp1, exp2))) = plus (neg exp1, neg exp2)
         | normalize (neg (times (exp1, exp2))) = times (neg exp1, exp2)
         | normalize (neg (neg exp)) = exp
-        | normalize (neg (fract exp)) = fract (neg exp)
-        | normalize (fract (k n)) = k (1.0 / n)
-        | normalize (fract (times (exp1, exp2))) = times (exp1, fract exp2)
-        | normalize (fract (fract exp)) = exp
+        | normalize (neg (inv exp)) = inv (neg exp)
+        | normalize (inv (times (exp1, exp2))) = times (exp1, inv exp2)
+        | normalize (inv (inv exp)) = exp
         | normalize exp = exp
 
     fun enclose (e : exp) : string = let val str : string = toString_sub e
                                             in case e of
                                                 plus (_, _) => "(" ^ str ^ ")"
                                                 | _ => str end
-    and toString_sub (k n : exp): string = let val str : string = Real.toString n
-                                            in if n >= 0.0 then str else "(" ^ str ^ ")" end
+    and toString_sub (k n : exp): string = let val str : string = Int.toString n
+                                            in if n >= 0 then str else "(" ^ str ^ ")" end
         | toString_sub (var x) = x
         | toString_sub (plus (exp1, exp2)) = toString_sub exp1 ^ " + " ^ toString_sub exp2
         | toString_sub (times (exp1, exp2)) = enclose exp1 ^ " * " ^ enclose exp2
         | toString_sub (neg exp) = "- (" ^ toString_sub exp ^ ")"
-        | toString_sub (fract exp) = "1 / (" ^ toString_sub exp ^ ")"
+        | toString_sub (inv exp) = "1 / (" ^ toString_sub exp ^ ")"
 
     fun toString exp = toString_sub (normalize exp)
 
@@ -116,11 +115,11 @@ structure Imp :> IMPERATIVE = struct
         | if_then_else of ASS.ass * program * program | while_do of ASS.ass * program
 
     fun toString skip = "skip"
-        | assign (var, ass) = var ^ ":=" toString ass
-        | cons (p q) = p ^ ";" ^ q
-        | if_then_else (b p q) = "if("^toString b^") then" ^ toString p ^
-        "else"^ toString b
-        | while_do (b p) = "while("^ b^") do " ^ toString p
+        | toString (assign (var, ass)) = var ^ ":=" ^ ASS.EXP.toString ass
+        | toString (cons (p, q)) = toString p ^ ";" ^ toString q
+        | toString (if_then_else (b, p, q)) = "if(" ^ ASS.toString b ^ ") then" ^ toString p ^
+        "else" ^ toString q
+        | toString (while_do (b, p)) = "while(" ^ ASS.toString b ^ ") do " ^ toString p
 
     fun parse _ = NONE (* da implementare *)
 

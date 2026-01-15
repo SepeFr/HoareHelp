@@ -1,5 +1,5 @@
-signatures.sml
-utils.sml
 lib/github.com/diku-dk/sml-parse/parse.mlb
+signatures/sig.mlb
 structures.sml
+utils.sml
 logic.sml
