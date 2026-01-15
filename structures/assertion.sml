@@ -49,11 +49,6 @@ structure Ass :> ASSERTION = struct
         | normalize (imply (t, ass)) = normalize ass
         | normalize (imply (_, t)) = t
         | normalize (imply (f, _)) = t
-
-        (*causa ricorsione ifinita
-           | normalize (imply (ass, f)) = normalize (not ass)
-        *)
-
         | normalize (imply (ass1, ass2)) = imply (normalize ass1, normalize ass2)
         | normalize c = c
 

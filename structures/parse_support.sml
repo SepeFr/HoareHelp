@@ -151,7 +151,7 @@ struct
       ass = prop | (ass and ass) | (ass or ass) | (ass -> ass)
    * *)
 
-  structure A = Ass
+  (* structure A = Ass *)
 
     fun parse_prop () : Imp.ASS.ass p =
           (parse_keyword "TRUE" *> accept Imp.ASS.t)
