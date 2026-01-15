@@ -1,5 +1,2 @@
-lib/github.com/diku-dk/sml-parse/parse.mlb
-signatures/sig.mlb
-structures.sml
-utils.sml
+structures/struct.mlb
 logic.sml
