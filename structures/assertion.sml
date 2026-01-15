@@ -18,7 +18,7 @@ structure Ass :> ASSERTION = struct
 
     fun andd ass1 ass2 = not (imply (ass1, not ass2))
 
-    fun isAndd assn = 
+    fun isAndd assn =
             case isNot assn of
                 SOME (imply (ass1, ass2)) => ( case isNot ass2 of
                                                 SOME ass3 => SOME (ass1, ass3)
@@ -43,13 +43,17 @@ structure Ass :> ASSERTION = struct
         | subst (eq (exp1, exp2)) name new = eq (EXP.subst exp1 name new, EXP.subst exp2 name new)
 
 
-    fun normalize (eq (exp1, exp2) : ass) : ass = if exp1 = exp2 
-                                                    then t 
+    fun normalize (eq (exp1, exp2) : ass) : ass = if exp1 = exp2
+                                                    then t
                                                     else eq (exp1, exp2)
         | normalize (imply (t, ass)) = normalize ass
         | normalize (imply (_, t)) = t
         | normalize (imply (f, _)) = t
-        | normalize (imply (ass, f)) = normalize (not ass)
+
+        (*causa ricorsione ifinita
+           | normalize (imply (ass, f)) = normalize (not ass)
+        *)
+
         | normalize (imply (ass1, ass2)) = imply (normalize ass1, normalize ass2)
         | normalize c = c
 

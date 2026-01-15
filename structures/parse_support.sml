@@ -22,7 +22,7 @@ struct
   val tokenise =
     T.tokenise {
       sep_chars = "();+-/*",
-      symb_chars = ":=<>=->",
+      symb_chars = ":=<>=>",
       is_num = isNum,
       is_id = isId
     }
@@ -51,7 +51,7 @@ struct
       ("Expecting Identifier" ^ quoting str))
 
   val reserved_words =
-        ["skip","if","then","else","while","do","TRUE","FALSE","inv"]
+        ["skip","if","then","else","while","do","TRUE","FALSE","inv", "and", "or"]
 
   val parse_variable : string p =
     next >>= (fn tok =>
@@ -146,8 +146,9 @@ struct
     (* part of ass *)
 
    (*
-      prop := TRUE | FALSE | exp "<" exp | exp "=" exp | "(" ass ")"
-      ass := prop ("-> ass) (<-
+      prop := TRUE | FALSE | exp "<" exp | exp "=" exp | "(" ass ")" | exp ">"
+      exp
+      ass = prop | (ass and ass) | (ass or ass) | (ass -> ass)
    * *)
 
   structure A = Ass
@@ -155,17 +156,28 @@ struct
     fun parse_prop () : Imp.ASS.ass p =
           (parse_keyword "TRUE" *> accept Imp.ASS.t)
       <|> (parse_keyword "FALSE" *> accept Imp.ASS.f)
-      <|> (Imp.ASS.less <$> ((delay parse_expression () <* parse_symbol "<")
-                         >>> delay parse_expression ()))
-      <|> (Imp.ASS.eq <$>  ((delay parse_expression () <* parse_symbol "=")
-                         >>> delay parse_expression ()))
-      <|> parens (delay parse_ass())
+      <|> (delay parse_expression () >>= (fn e1 =>
+            (parse_symbol "<" *> delay parse_expression () >>= (fn e2 => accept (Imp.ASS.less(e1, e2))))
+        <|> (parse_symbol ">" *> delay parse_expression () >>= (fn e2 => accept
+        (Imp.ASS.more e1 e2)))
+        <|> (parse_symbol "=" *> delay parse_expression () >>= (fn e2 => accept (Imp.ASS.eq(e1, e2))))))
+
+      <|> parens (delay parse_ass ())
     and parse_ass() : Imp.ASS.ass p =
       let
-        fun combine (left, (_, right)) = Imp.ASS.imply(left, right)
+        val parse_choice : string p =
+            (parse_keyword "and" *> accept "and")
+        <|> (parse_keyword "or" *> accept "or")
+        <|> (parse_symbol "=>" *> accept "=>")
+
+        fun combine (left, (operator, right)) =
+          case operator of
+               "and" => Imp.ASS.andd left right
+             | "or" => Imp.ASS.orr left right
+             | "=>" => Imp.ASS.imply(left, right)
+             | _ => left
       in
-        ((delay parse_prop ()) ??* ((parse_symbol "->" *> accept "->") >>> delay
-        parse_ass ())) combine
+        (delay parse_prop () ??* (parse_choice >>> delay parse_prop ())) combine
       end
 
     fun parseAssString (s: string) : Imp.ASS.ass option =
@@ -192,6 +204,4 @@ struct
           (print (Region.ppLoc loc ^ ": " ^ msg() ^ "\n");
            NONE)
     end
-
-
 end
