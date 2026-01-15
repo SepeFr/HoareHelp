@@ -10,16 +10,19 @@ structure Hoare : LOGIC = struct
 
     exception DerivationError of string
 
+    type triple = (IMP.program * IMP.ASS.ass * IMP.ASS.ass)
+    type der_chain = triple list
+
     fun string_goal (prg : IMP.program, pre : IMP.ASS.ass, post : IMP.ASS.ass) : string =
         "{" ^ IMP.ASS.toString pre ^ "} " ^ IMP.toString prg ^ " {" ^ IMP.ASS.toString post ^ "}"
 
-    fun consume_goal (triple : IMP.program * IMP.ASS.ass * IMP.ASS.ass) (idx : int) : unit = 
+    fun consume_goal (triple : triple) (idx : int) : unit = 
         TextIO.print (Int.toString idx ^ " )\t" ^ string_goal triple ^ "\n")
               
     fun current_goal (prg : IMP.program) (pre : IMP.ASS.ass) (post : IMP.ASS.ass) : unit = 
         TextIO.print ("Current subgoal:\t" ^ string_goal (prg, pre, post) ^ "\n")
 
-    fun subgoals (nil : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list) (_ : int) : unit = ()
+    fun subgoals (nil : der_chain) (_ : int) : unit = ()
         | subgoals (node :: l) idx = (consume_goal node idx; subgoals l (idx + 1))
 
     fun numeric_input () : int = valOf (Int.fromString (valOf (TextIO.inputLine TextIO.stdIn)))
@@ -27,7 +30,7 @@ structure Hoare : LOGIC = struct
                                                             numeric_input () ) (* viene gestita solo l'espressione 
                                                                         più esterna (?) *)
 
-    fun next_goal (der_list : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list) : int = 
+    fun next_goal (der_list : der_chain) : int = 
         ( subgoals der_list 1;
         TextIO.print "Select next goal: ";
         let val return : int = numeric_input ()
@@ -113,7 +116,7 @@ structure Hoare : LOGIC = struct
             else derive IMP.skip pre (step IMP.skip pre post)
         | derive program pre post = derive IMP.skip pre (step program pre post)
 
-    and step (prg : IMP.program) (pre : IMP.ASS.ass) (post : IMP.ASS.ass): IMP.ASS.ass = (* da implementare, print current subgoal a ogni an unapplicable rulechiamata *)
+    and step (prg : IMP.program) (pre : IMP.ASS.ass) (post : IMP.ASS.ass) : IMP.ASS.ass = (* da implementare, print current subgoal a ogni an unapplicable rulechiamata *)
             let val (rule : rule, help : IMP.ASS.ass option) = (current_goal prg pre post; interact prg post) 
             in 
                 case rule of
@@ -147,7 +150,7 @@ structure Hoare : LOGIC = struct
                                         | NONE => raise DerivationError "Unknown precondition for OR derivation" )
             end
 
-    and parallel (nil : (IMP.program * IMP.ASS.ass * IMP.ASS.ass) list) : unit = raise DerivationError "The program can't find the next derivation to complete"
+    and parallel (nil : der_chain) : unit = raise DerivationError "The program can't find the next derivation to complete"
         | parallel ((prg, pre, post) :: nil) = derive prg pre post
         | parallel der_list = 
             let val idx : int = (next_goal der_list) - 1
