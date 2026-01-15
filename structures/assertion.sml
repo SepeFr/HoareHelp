@@ -18,10 +18,12 @@ structure Ass :> ASSERTION = struct
 
     fun andd ass1 ass2 = not (imply (ass1, not ass2))
 
-    fun isAndd (imply (ass1, ass2)) = ( case isNot ass2 of
-                                                                    SOME assn => SOME (ass1, assn)
-                                                                    | NONE => NONE )
-        | isAndd _ = NONE
+    fun isAndd assn = 
+            case isNot assn of
+                SOME (imply (ass1, ass2)) => ( case isNot ass2 of
+                                                SOME ass3 => SOME (ass1, ass3)
+                                                | NONE => NONE )
+                | _ => NONE
 
     fun more exp1 exp2 = not (orr (less (exp1, exp2)) (eq (exp1, exp2)))
 
@@ -40,15 +42,26 @@ structure Ass :> ASSERTION = struct
         | subst (less (exp1, exp2)) name new = less (EXP.subst exp1 name new, EXP.subst exp2 name new)
         | subst (eq (exp1, exp2)) name new = eq (EXP.subst exp1 name new, EXP.subst exp2 name new)
 
-    fun toString ass =
+
+    fun normalize (eq (exp1, exp2) : ass) : ass = if exp1 = exp2 
+                                                    then t 
+                                                    else eq (exp1, exp2)
+        | normalize (imply (t, ass)) = normalize ass
+        | normalize (imply (_, t)) = t
+        | normalize (imply (f, _)) = t
+        | normalize (imply (ass, f)) = normalize (not ass)
+        | normalize (imply (ass1, ass2)) = imply (normalize ass1, normalize ass2)
+        | normalize c = c
+
+    fun toString_sub (ass : ass) : string =
         ( case isNot ass of
-            SOME assn => "¬( " ^ toString assn ^ " )"
+            SOME assn => "¬( " ^ toString_sub assn ^ " )"
             | NONE =>
                 ( case isOrr ass of
-                    SOME (ass1, ass2) => "( " ^ toString ass1 ^ " ) ∨ ( " ^ toString ass2 ^ " )"
+                    SOME (ass1, ass2) => "( " ^ toString_sub ass1 ^ " ) ∨ ( " ^ toString_sub ass2 ^ " )"
                     | NONE =>
                         ( case isAndd ass of
-                            SOME (ass1, ass2) => "( " ^ toString ass1 ^ " ) ∧ ( " ^ toString ass2 ^ " )"
+                            SOME (ass1, ass2) => "( " ^ toString_sub ass1 ^ " ) ∧ ( " ^ toString_sub ass2 ^ " )"
                             | NONE =>
                                 ( case isMore ass of
                                     SOME (exp1, exp2) => EXP.toString exp1 ^ " > " ^ EXP.toString exp2
@@ -56,12 +69,12 @@ structure Ass :> ASSERTION = struct
                                         ( case ass of
                                             t => "TRUE"
                                             | f => "FALSE"
-                                            | imply (ass1, ass2) => "( " ^ toString ass1 ^ " ) ⊃ ( " ^ toString ass2 ^ " )"
+                                            | imply (ass1, ass2) => "( " ^ toString_sub ass1 ^ " ) ⊃ ( " ^ toString_sub ass2 ^ " )"
                                             | less (exp1, exp2) => EXP.toString exp1 ^ " < " ^ EXP.toString exp2
                                             | eq (exp1, exp2) => EXP.toString exp1 ^ " = " ^ EXP.toString exp2
                                             )))))
 
-
+    fun toString ass = toString_sub (normalize ass)
 
     fun parse _ = NONE (* da implementare *)
 end
