@@ -204,4 +204,61 @@ struct
           (print (Region.ppLoc loc ^ ": " ^ msg() ^ "\n");
            NONE)
     end
+
+    (* part of imp *)
+   (*
+      prog := stmt (";" stmt)*
+
+      stmt := skip | x := exp | if ass then prog else prog | while ass do prog |
+      "(" + prog + ")"
+   * *)
+
+
+    fun parse_program () : Imp.program p =
+      let
+        fun combine (left, (_, right)) = Imp.cons(left, right)
+      in
+        (delay parse_imperative () ??* ( (parse_symbol ";" *> accept ";") >>>
+        delay parse_imperative ())) combine
+      end
+    and parse_imperative() : Imp.program p =
+          (parse_keyword "skip" *> accept Imp.skip)
+      <|> (Imp.while_do <$>
+            (( parse_keyword "while" *> delay parse_ass () ) >>>
+            (parse_keyword "do" *> delay parse_program () ))
+          )
+      <|> (parse_keyword "if" *> delay parse_ass () >>= ( fn cond =>
+            parse_keyword "then" *> delay parse_program () >>= ( fn p1 =>
+            parse_keyword "else" *> delay parse_program () >>= ( fn p2 =>
+            accept (Imp.if_then_else(cond, p1,p2))))))
+      <|> ( (parse_variable <* parse_symbol ":=") >>= (fn var =>
+            delay parse_expression () >>= ( fn exp =>
+              accept (Imp.assign(var, exp)))))
+      <|> (parens (delay parse_program ()))
+
+
+    fun parseImpString (s: string) : Imp.program option =
+      let
+        val ts = fromString s
+      in
+        case Parser.parse (delay parse_program() <* eof) ts of
+             OK e => SOME e
+      | NO (loc, msg) =>
+          (print (Region.ppLoc loc ^ ": " ^ msg() ^ "\n");
+           NONE)
+    end
+
+
+  fun parsePrintI (s: string) : Imp.program option =
+    let
+      val ts = fromString s
+    in
+      case Parser.parse (delay parse_program() <* eof) ts of
+        OK e =>
+          (print ("OK: " ^ Imp.toString e ^ "\n");
+           SOME e)
+      | NO (loc, msg) =>
+          (print (Region.ppLoc loc ^ ": " ^ msg() ^ "\n");
+           NONE)
+    end
 end
