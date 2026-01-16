@@ -53,17 +53,17 @@ structure Ass :> ASSERTION = struct
         | normalize c = c
 
     fun toString_sub (ass : ass) : string =
-        ( case isNot ass of
-            SOME assn => "¬( " ^ toString_sub assn ^ " )"
+        ( case isMore ass of
+            SOME (exp1, exp2) => EXP.toString exp1 ^ " > " ^ EXP.toString exp2
             | NONE =>
-                ( case isOrr ass of
-                    SOME (ass1, ass2) => "( " ^ toString_sub ass1 ^ " ) ∨ ( " ^ toString_sub ass2 ^ " )"
+                ( case isNot ass of
+                    SOME assn => "¬( " ^ toString_sub assn ^ " )"
                     | NONE =>
-                        ( case isAndd ass of
-                            SOME (ass1, ass2) => "( " ^ toString_sub ass1 ^ " ) ∧ ( " ^ toString_sub ass2 ^ " )"
+                        ( case isOrr ass of
+                            SOME (ass1, ass2) => "( " ^ toString_sub ass1 ^ " ) ∨ ( " ^ toString_sub ass2 ^ " )"
                             | NONE =>
-                                ( case isMore ass of
-                                    SOME (exp1, exp2) => EXP.toString exp1 ^ " > " ^ EXP.toString exp2
+                                ( case isAndd ass of
+                                    SOME (ass1, ass2) => "( " ^ toString_sub ass1 ^ " ) ∧ ( " ^ toString_sub ass2 ^ " )"
                                     | NONE =>
                                         ( case ass of
                                             t => "TRUE"
