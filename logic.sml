@@ -216,6 +216,7 @@ in
                     derive program pre post
                 )
             end
-
     end
 end
+
+Hoare.main ()
