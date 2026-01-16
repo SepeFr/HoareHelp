@@ -1,4 +1,3 @@
-
 structure ParseSupport =
 struct
   structure T = SimpleToken
@@ -269,7 +268,7 @@ struct
     in
       case Parser.parse (delay parse_program() <* eof) ts of
         OK e =>
-          (print ("OK: " ^ Imp.toString e ^ "\n");
+          (print ("OK: \n" ^ Imp.toString e ^ "\n");
            SOME e)
       | NO (loc, msg) =>
           (print (Region.ppLoc loc ^ ": " ^ msg() ^ "\n");

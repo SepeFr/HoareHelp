@@ -7,6 +7,9 @@ use "lib/github.com/diku-dk/sml-parse/Parse.sml";
 use "lib/github.com/diku-dk/sml-parse/SIMPLE_TOKEN.sig";
 use "lib/github.com/diku-dk/sml-parse/SimpleToken.sml";
 
+use "signatures/utils.sig";
+use "structures/utils.sml";
+
 use "signatures/expression.sig";
 use "structures/expression.sml";
 
@@ -16,16 +19,12 @@ use "structures/assertion.sml";
 use "signatures/imperative.sig";
 use "structures/imperative.sml";
 
-use "signatures/utils.sig";
-use "structures/utils.sml";
 
 use "structures/parse_support.sml";
 
-use
 
 
-
-(*List.app (fn s => (print ("Testing: " ^ s ^ "\n"); ignore
+List.app (fn s => (print ("Testing: " ^ s ^ "\n"); ignore
 (ParseSupport.parsePrintI s))) [
 "x := 9; while (x > 0 or x = 0) do (x := x + 1;  y := y * 2)",
 "if (x > 0) then (while not(x = 0) do (x := x-1)) else x := 10"
@@ -58,7 +57,7 @@ end
 "exp(x,2)+0", "1*x+y/1", "exp(x,5)*exp(x,5)", "exp(x,100)", "x * x * x * y"
 ];*)
 
-
+(*
 val test_cases = [
     (* --- Basic Statements & Assignments --- *)
     "skip",
@@ -175,10 +174,4 @@ val test_cases = [
     (*custom*)
     "while ((* COMMENTS !!!!!!!!!!!!!!*)TRUE and not(x = 0)) do (x := x - 1)"
 ];
-
-(* Execution script *)
-val _ = List.app (fn s => (
-    print ("\nTesting: " ^ s ^ "\n");
-    ignore (ParseSupport.parsePrintI s)
-    handle Fail msg => print ("Error: " ^ msg ^ "\n")
-)) test_cases;*)
+*)
