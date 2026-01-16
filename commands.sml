@@ -16,6 +16,9 @@ use "structures/assertion.sml";
 use "signatures/imperative.sig";
 use "structures/imperative.sml";
 
+use "signatures/utils.sig";
+use "structures/utils.sml";
+
 use "structures/parse_support.sml";
 
 use

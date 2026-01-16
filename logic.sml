@@ -46,7 +46,7 @@ in
             (( case printable of
                 SOME thing => TextIO.print thing
                 | NONE => () );
-            valOf (TextIO.inputLine TextIO.stdIn) 
+            Utils.trim_space (valOf (TextIO.inputLine TextIO.stdIn))
             handle Option.Option => ("Empty input, try again\n"; prompt printable ) )
 
         fun rule_input () : rule =
@@ -226,4 +226,4 @@ in
     end
 end
 
-Hoare.main ()
+(* Hoare.main () *)
