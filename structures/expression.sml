@@ -47,17 +47,34 @@ structure Exp :> EXPRESSION = struct
         | normalize exp = exp
 
 
+    fun powerCount base e =
+        case e of
+               times(x, y) => if x = base then 1 + powerCount base y else
+                 if y = base then 1 + powerCount base x else 0
+             | _ => if e = base then 1 else 0
+
     fun enclose (e : exp) : string = let val str : string = toString_sub e
                                             in case e of
                                                 plus (_, _) => "(" ^ str ^ ")"
                                                 | _ => str end
+
     and toString_sub (k n : exp): string = let val str : string = Int.toString n
                                             in if n >= 0 then str else "(" ^ str ^ ")" end
         | toString_sub (var x) = x
         | toString_sub (plus (exp1, exp2)) = toString_sub exp1 ^ " + " ^ toString_sub exp2
         | toString_sub (times(exp1, inv exp2)) = enclose exp1 ^ "/" ^
         enclose exp2
-        | toString_sub (times (exp1, exp2)) = enclose exp1 ^ " * " ^ enclose exp2
+(*        | toString_sub (times (exp1, exp2)) = enclose exp1 ^ " * " ^ enclose
+*        exp2*)
+        | toString_sub (times (base, rest)) =
+          let
+            val pow = powerCount base rest
+          in
+            if pow > 0
+            then toString_sub base ^ "^" ^ Int.toString(pow +1)
+            else enclose base ^ "*" ^ enclose rest
+          end
+
         | toString_sub (neg exp) = "- (" ^ toString_sub exp ^ ")"
         | toString_sub (inv exp) = "1 / (" ^ toString_sub exp ^ ")"
 

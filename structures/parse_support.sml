@@ -21,7 +21,7 @@ struct
   (* is_id : ie. what i consider an identifies (variables) *)
   val tokenise =
     T.tokenise {
-      sep_chars = "();+-/*",
+      sep_chars = "();+-/*,",
       symb_chars = ":=<>=>",
       is_num = isNum,
       is_id = isId
@@ -51,7 +51,8 @@ struct
       ("Expecting Identifier" ^ quoting str))
 
   val reserved_words =
-        ["skip","if","then","else","while","do","TRUE","FALSE","inv", "and", "or"]
+        ["skip","if","then","else","while","do","TRUE","FALSE","inv", "and",
+        "or", "exp"]
 
   val parse_variable : string p =
     next >>= (fn tok =>
@@ -78,23 +79,30 @@ struct
   (*EXP PARSER -> EXP*)
   (**
   * Assuming this grammar for parsing
-  * exp := term ("+" term)
+  * exp := term ("+ or -" term)
   * term := unary ("* or /" unary)
   * unary := "-" |  atom
-  * atom := int | var | "(" exp ")"
+  * atom := int | var | "(" exp ")" | "exp" "(" exp "," int")"
   *)
 
     fun parse_atom () : Imp.ASS.EXP.exp p =
           (Imp.ASS.EXP.k <$> parse_int)
       <|> (Imp.ASS.EXP.var <$> parse_variable)
       <|> parens (delay parse_expression ())
+      <|> (parse_keyword "exp" *> parse_symbol "(") *>
+            (
+              (delay parse_expression ()) >>= ( fn base =>
+                parse_symbol "," *>
+                parse_int >>= (fn n =>
+                  parse_symbol ")" *>
+                  accept (Imp.ASS.EXP.expn base n)
+                )
+              )
+            )
+
     and
       parse_unary() : Imp.ASS.EXP.exp p =
-        (*try to parse - as symbol; if it succedes then; apply the function
-        * Imp.ASS.EXP.neg which is a constructor to parse_unary() in a lazy way*)
           (parse_symbol "-" *> (Imp.ASS.EXP.neg <$> delay parse_unary ()))
-      (*<|> (parse_keyword "inv" *> parens (Imp.ASS.EXP.inv <$> delay parse_expression
-      * ()))*)
       <|> parse_atom()
     and parse_term() : Imp.ASS.EXP.exp p =
       let
@@ -113,10 +121,17 @@ struct
       end
     and parse_expression() : Imp.ASS.EXP.exp p =
       let
-        fun combine (left, (_, right)) = Imp.ASS.EXP.plus(left, right)
+        val parse_choice : string p =
+            (parse_symbol "+" *> accept "+")
+        <|> (parse_symbol "-" *> accept "-")
+
+      fun combine (left, (operator, right)) =
+        case operator of
+             "+" => Imp.ASS.EXP.plus(left, right)
+           | "-" => Imp.ASS.EXP.plus(left, Imp.ASS.EXP.neg right)
+           | _   => left
       in
-        ((delay parse_term()) ??* ((parse_symbol "+" *> accept "+") >>> delay
-        parse_term ())) combine
+        ((delay parse_term()) ??* (parse_choice >>> delay parse_term ())) combine
       end
 
     fun parseExpString (s: string) : Imp.ASS.EXP.exp option =

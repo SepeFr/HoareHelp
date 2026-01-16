@@ -3,8 +3,7 @@ structure Hoare : LOGIC = struct
 
     datatype logic_rule = TRUTH | FALSEHOOD | WEAKENING | STRENGTHENING | AND | OR
     datatype rule = logic of logic_rule | PROGRAM | BACK
-    (* L'utente deve fornire in input la regola PRECISA da usare o lo facciamo capire al programma?
-        Tanto l'utente, tra tutte le regole speciali, ne può applicare una specifica, che dovrebbe essere
+    (* L'utente deve fornire in input la regola PRECISA da usare o lo facciamo capire al programma? Tanto l'utente, tra tutte le regole speciali, ne può applicare una specifica, che dovrebbe essere
         controllata comunque dal programma, in caso sarebbe da aggiungere un altro costruttore, niente di che *)
     (* Mettere skip all'inizio o inserire anche strenghtening? *)
 
@@ -144,7 +143,7 @@ structure Hoare : LOGIC = struct
                                                                                     (IMP.skip, IMP.ASS.andd p (IMP.ASS.not q), post)]; (p, next))
                                                             | NONE => raise DerivationError "Unknown precondition for WHILE derivation" )
                                 )
-                    | BACK => ( case history of 
+                    | BACK => ( case history of
                                 (lprg, lpre, lpost) :: rest => (TextIO.print "Reverting back to previous step\n"; step lprg lpre lpost rest)
                                 | nil => (TextIO.print "Nothing to go back to\n"; step prg pre post history) )
                     | logic TRUTH => ( case post of
@@ -157,7 +156,7 @@ structure Hoare : LOGIC = struct
                                             SOME p => step prg pre p next
                                             | NONE => raise DerivationError "Unknown precondition for WEAKENING derivation" )
                     | logic STRENGTHENING => let val (res : IMP.ASS.ass, hist : der_chain) = step prg pre post next
-                                                in 
+                                                in
                                                     TextIO.print ("Please provide any P such that\n"
                                                                 ^ "P ⊃ " ^ IMP.ASS.toString res ^ ":\n");
                                                     (assertion_input (), hist)
