@@ -11,6 +11,4 @@ structure Imp :> IMPERATIVE = struct
         "else" ^ toString q
         | toString (while_do (b, p)) = "while (" ^ ASS.toString b ^ ") do " ^ toString p
 
-    fun parse _ = NONE (* da implementare *)
-
 end

@@ -5,5 +5,4 @@ signature IMPERATIVE = sig
         | if_then_else of ASS.ass * program * program | while_do of ASS.ass * program
 
     val toString : program -> string
-    val parse : string -> program option
 end

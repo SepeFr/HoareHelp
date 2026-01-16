@@ -14,7 +14,7 @@ structure Exp :> EXPRESSION = struct
         | subst (neg exp) name new = neg (subst exp name new)
         | subst (inv exp) name new = inv (subst exp name new)
 
-  fun normalize (neg (k n)) = k (0 - n)
+  fun normalize (neg (k n)) = k (~n)
         | normalize (times (k 1, exp) ) = normalize exp
         | normalize (times (exp, k 1) ) = normalize exp
 
@@ -46,7 +46,6 @@ structure Exp :> EXPRESSION = struct
 
         | normalize exp = exp
 
-
     fun powerCount base e =
         case e of
                times(x, y) => if x = base then 1 + powerCount base y else
@@ -61,6 +60,10 @@ structure Exp :> EXPRESSION = struct
     and toString_sub (k n : exp): string = let val str : string = Int.toString n
                                             in if n >= 0 then str else "(" ^ str ^ ")" end
         | toString_sub (var x) = x
+        | toString_sub (plus (exp1, k i)) = if i > 0 then toString_sub exp1 ^ " + " ^ Int.toString i
+                                              else if i < 0 then toString_sub exp1 ^ " - " ^ Int.toString (~i)
+                                                else  toString_sub exp1
+        | toString_sub (plus (exp1, neg exp2)) = toString_sub exp1 ^ " - " ^ toString_sub exp2
         | toString_sub (plus (exp1, exp2)) = toString_sub exp1 ^ " + " ^ toString_sub exp2
         | toString_sub (times(exp1, inv exp2)) = enclose exp1 ^ "/" ^
         enclose exp2
@@ -79,6 +82,5 @@ structure Exp :> EXPRESSION = struct
         | toString_sub (inv exp) = "1 / (" ^ toString_sub exp ^ ")"
 
     fun toString exp = toString_sub (normalize exp)
-
-    fun parse _ = NONE (* da implementare *)
+    
 end

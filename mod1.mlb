@@ -1,2 +1,7 @@
-structures/struct.mlb
-logic.sml
+local
+  $(SML_LIB)/basis/basis.mlb
+  structures/struct.mlb
+  signatures/sig.mlb
+in
+  logic.sml
+end

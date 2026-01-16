@@ -1,5 +1,8 @@
-expression.SIG
-assertion.SIG
-imperative.SIG
-logic.SIG
-utils.SIG
+local $(SML_LIB)/basis/basis.mlb
+in
+  expression.sig
+  assertion.sig
+  imperative.sig
+  logic.sig
+  utils.sig
+end

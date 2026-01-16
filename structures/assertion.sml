@@ -93,5 +93,4 @@ structure Ass :> ASSERTION = struct
 
     fun toString ass = toString_sub (normalize ass)
 
-    fun parse _ = NONE (* da implementare *)
 end

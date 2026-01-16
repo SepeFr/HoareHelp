@@ -1,10 +1,14 @@
-../lib/github.com/diku-dk/sml-parse/parse.mlb
-../lib/github.com/diku-dk/sml-parse/simple_token.mlb
-../lib/github.com/diku-dk/sml-parse/char_token.mlb
-../lib/github.com/diku-dk/sml-parse/scan-util.mlb
-../signatures/sig.mlb
-expression.sml
-assertion.sml
-imperative.sml
-parse_support.sml
-utils.sml
+local
+  $(SML_LIB)/basis/basis.mlb
+  ../lib/github.com/diku-dk/sml-parse/scan-util.mlb
+  ../lib/github.com/diku-dk/sml-parse/char_token.mlb
+  ../lib/github.com/diku-dk/sml-parse/simple_token.mlb
+  ../lib/github.com/diku-dk/sml-parse/parse.mlb
+  ../signatures/sig.mlb
+in
+  utils.sml
+  expression.sml
+  assertion.sml
+  imperative.sml
+  parse_support.sml
+end
