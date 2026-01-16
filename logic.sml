@@ -1,4 +1,4 @@
-local open ParseSupport 
+local open ParseSupport
 
 in
     structure Hoare : LOGIC = struct

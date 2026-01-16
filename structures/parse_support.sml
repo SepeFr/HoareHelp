@@ -161,9 +161,8 @@ struct
     (* part of ass *)
 
    (*
-      prop := TRUE | FALSE | exp "<" exp | exp "=" exp | "(" ass ")" | exp ">"
-      exp
-      ass = prop | (ass and ass) | (ass or ass) | (ass -> ass)
+      prop := TRUE | FALSE | exp "<" exp | exp "=" exp | "(" ass ")" | exp ">" |
+      base = prop | (ass and ass) | (ass or ass) | (ass -> ass) | not (ass)
    * *)
 
   (* structure A = Ass *)
@@ -176,7 +175,7 @@ struct
         <|> (parse_symbol ">" *> delay parse_expression () >>= (fn e2 => accept
         (Imp.ASS.more e1 e2)))
         <|> (parse_symbol "=" *> delay parse_expression () >>= (fn e2 => accept (Imp.ASS.eq(e1, e2))))))
-
+      <|> (Imp.ASS.not <$> (parse_keyword "not" *> delay parse_ass ()))
       <|> parens (delay parse_ass ())
     and parse_ass() : Imp.ASS.ass p =
       let
