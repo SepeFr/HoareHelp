@@ -25,9 +25,9 @@ in
             TextIO.print (Int.toString idx ^ " )\t" ^ string_goal triple ^ "\n")
 
         fun current_goal (prg : IMP.program) (pre : IMP.ASS.ass option) (post : IMP.ASS.ass) : unit =
-            TextIO.print ("Current subgoal:\t" ^
-                            ( case pre of
-                                SOME p => string_goal (prg, p, post)
+            TextIO.print ("Current subgoal:\t" ^ 
+                            ( case pre of 
+                                SOME p => string_goal (prg, p, post) 
                                 | NONE => "??? " ^ IMP.toString prg ^ " {" ^ IMP.ASS.toString post ^ "}" ) ^ "\n")
 
         fun subgoals (nil : der_chain) (_ : int) : unit = ()
@@ -35,7 +35,7 @@ in
 
         fun numeric_input () : int = ( case TextIO.inputLine TextIO.stdIn of
                                         SOME thing => ( valOf (Int.fromString thing)
-                                                        handle Option.Option =>
+                                                        handle Option.Option => 
                                                             ( TextIO.print "Wrong input, try again\n";
                                                                 numeric_input () ) )
                                         | NONE => numeric_input () )
@@ -59,8 +59,8 @@ in
 
         fun rule_input () : rule =
             let val str : string = prompt (SOME ("Choose derivation rule to follow, from\n"
-                                                ^ "TRUTH, FALSEHOOD, WEAKENING, STRENGTHENING, AND, OR,\n"
-                                                ^ "SKIP, ASSIGN, IF, WHILE, COMP,\n"
+                                                ^ "TRUTH, FALSEHOOD, WEAKENING, STRENGTHENING, AND, OR,\n" 
+                                                ^ "SKIP, ASSIGN, IF, WHILE, COMP,\n" 
                                                 ^ "HELP, BACK: "))
                 val upper_trimmed : string = Utils.trim_space (String.map Char.toUpper str)
             in
@@ -73,8 +73,8 @@ in
                     | "OR" => logic OR
                     | "SKIP" => program SKIP
                     | "ASSIGN" => program ASSIGN
-                    | "IF" => program IF
-                    | "WHILE" => program WHILE
+                    | "IF" => program IF 
+                    | "WHILE" => program WHILE 
                     | "COMP" => program COMP
                     | "BACK" => BACK
                     | "HELP" => HELP
@@ -107,7 +107,9 @@ in
                 | logic TRUTH => ( case post of
                                     IMP.ASS.t => (logic TRUTH, NONE)
                                     | _ => ( TextIO.print "Unapplicable rule, try again\n"; interact fragment post block ) )
-                | HELP => if block
+                | logic WEAKENING => (logic WEAKENING, 
+                            SOME (TextIO.print ("Please input a Q such that\nQ ⊃ " ^ IMP.ASS.toString post ^ ":\n"); assertion_input ()) )
+                | HELP => if block 
                             then (TextIO.print "Unapplicable rule, try again\n"; interact fragment post block)
                             else (HELP, SOME ( TextIO.print "Please input a plausible precondition for the current step:\n"; assertion_input () ))
                 | els => (els, NONE)
@@ -122,66 +124,84 @@ in
                     SOME (l, r) => (distribute_or prg l post) @ (distribute_or prg r post)
                     | NONE => [(prg, pre, post)]
 
+        fun confirm (message : string) : bool =
+            let val res : string = prompt (SOME ("Do you confirm that " ^ message ^ "? ([yes]/no)"))
+                val upperTrimmed : string = Utils.trim_space (String.map Char.toUpper res)
+            in 
+                case upperTrimmed of
+                    "YES" => true
+                    | "NO" => false
+                    | _ => ("Wrong input, try again\n"; confirm message)
+            end
+
         fun derive prog pre post = loop prog pre post nil
 
         and loop (prog : IMP.program) (pre : IMP.ASS.ass) (post : IMP.ASS.ass) (trace : weak_chain) : unit =
             let val (result : IMP.ASS.ass, _ : weak_chain) = (step prog (SOME pre) post trace)
             in
                 if IMP.ASS.toString pre = IMP.ASS.toString result
-                    then TextIO.print "\027[32mHooray!!!\027[0m\n" else (TextIO.print "\027[31mDerivation failed, try again\027[0m\n"; loop prog pre post trace) (*else (TextIO.print "Derivation failed, try again\n"; loop
+                    then TextIO.print "\027[32mHooray!!!\027[0m\n"
+                    else (TextIO.print "\027[31mDerivation failed, try again\027[0m\n"; loop prog pre post trace)
+                    (*else (TextIO.print "Derivation failed, try again\n"; loop
                     * prog pre post trace)*)
             end
 
         and step (prg : IMP.program) (pre : IMP.ASS.ass option) (post : IMP.ASS.ass) (history : weak_chain): IMP.ASS.ass * weak_chain = (* da implementare, print current subgoal a ogni an unapplicable rulechiamata *)
-                let val (rule : rule, help : IMP.ASS.ass option) = (current_goal prg pre post; interact prg post (isSome pre)) (*!!!*)
+                let val (rule : rule, help : IMP.ASS.ass option) = (current_goal prg pre post; interact prg post (isSome pre)) 
                     val next : weak_chain = (prg, pre, post)::history
+                    val retry : unit -> IMP.ASS.ass * weak_chain =  fn () => step prg pre post history
                 in
                     case rule of
                         program GENERIC => ( case prg of
                                     IMP.skip => (post, next)
                                     | IMP.assign (x, e) => (IMP.ASS.subst post x e, next)
-                                    | IMP.cons (c1, c2) => let val (res : IMP.ASS.ass, hist : weak_chain) = step c2 NONE post next
+                                    | IMP.cons (c1, c2) => let val (res : IMP.ASS.ass, trace : weak_chain) = step c2 NONE post next
                                                             in
-                                                                step c1 pre res hist
+                                                                step c1 pre res trace
                                                             end
-                                    | IMP.if_then_else (q, c1, c2) => ( case help of
+                                    | IMP.if_then_else (q, c1, c2) => ( case pre of
                                                                             SOME p => (parallel [(c1, IMP.ASS.andd p q, post),
                                                                                                     (c2, IMP.ASS.andd p (IMP.ASS.not q), post)]; (p, next))
-                                                                            | NONE => raise DerivationError "Unknown precondition for IF derivation" )
-                                    | IMP.while_do (q, c) => ( case help of
-                                                                SOME p => (parallel [(c, IMP.ASS.andd p q, p),
+                                                                            | NONE =>  (TextIO.print "Precondition unknown\n"; retry () ) )
+                                    | IMP.while_do (q, c) => ( case pre of
+                                                                SOME p => if confirm (IMP.ASS.toString (IMP.ASS.andd p (IMP.ASS.not q))
+                                                                                        ^ " ≡ " ^ IMP.ASS.toString post)
+                                                                            then (parallel [(c, IMP.ASS.andd p q, p),
                                                                                         (IMP.skip, IMP.ASS.andd p (IMP.ASS.not q), post)]; (p, next))
-                                                                | NONE => raise DerivationError "Unknown precondition for WHILE derivation" )
+                                                                            else retry ()
+                                                                | NONE => (TextIO.print "Precondition unknown\n"; retry () ) )
                                     )
                         | program _ => raise DerivationError "Program failure in \"step\" function"
                         | BACK => ( case history of
                                     (lprg, lpre, lpost) :: rest => (TextIO.print "Reverting back to previous step\n"; step lprg lpre lpost rest)
-                                    | nil => (TextIO.print "Nothing to go back to\n"; step prg pre post history) )
+                                    | nil => (TextIO.print "Nothing to go back to\n"; retry ()) )
                         | logic TRUTH => ( case post of
-                                            IMP.ASS.t => ( case help of
+                                            IMP.ASS.t => ( case pre of
                                                             SOME p => (p, next)
-                                                            | NONE => raise DerivationError "Unknown precondition for TRUTH derivation" )
+                                                            | NONE => (TextIO.print "Precondition unknown\n"; retry () ) )
                                             | _ => raise DerivationError "The program was asked to apply the TRUTH rule where it's inapplicable" )
                         | logic FALSEHOOD => (IMP.ASS.f, next)
-                        | logic WEAKENING => ( case help of
-                                                SOME p => step prg pre p next
+                        | logic WEAKENING => ( case help of (*!!!*)
+                                                SOME h => step prg pre h next
                                                 | NONE => raise DerivationError "Unknown precondition for WEAKENING derivation" )
-                        | logic STRENGTHENING => let val (res : IMP.ASS.ass, hist : weak_chain) = step prg pre post next
-                                                    in
-                                                        TextIO.print ("Please provide any P such that\n"
-                                                                    ^ "P ⊃ " ^ IMP.ASS.toString res ^ ":\n");
-                                                        (assertion_input (), hist)
-                                                    end
-                        | logic AND => ( case pre of
+                        | logic STRENGTHENING => ( case pre of
+                                                    SOME p => let val (res : IMP.ASS.ass, trace : weak_chain) = step prg pre post next
+                                                                in 
+                                                                    if confirm (IMP.ASS.toString (IMP.ASS.imply (p, res)))
+                                                                    then (p, trace)
+                                                                    else retry ()
+                                                                end
+                                                    | NONE => (TextIO.print "Precondition unknown\n"; retry ()) )
+                        | logic AND => ( case pre of 
                                             SOME p => ( parallel (distribute_or prg p post); (p, next) )
-                                            | NONE => (TextIO.print "Precondition unknown\n"; step prg pre post history) )
-                        | logic OR => ( case pre of
+                                            | NONE => (TextIO.print "Precondition unknown\n"; retry ()) )
+                        | logic OR => ( case pre of 
                                             SOME p => ( parallel (distribute_or prg p post); (p, next) )
-                                            | NONE => (TextIO.print "Precondition unknown\n"; step prg pre post history) )
-                        | HELP => ( case help of
+                                            | NONE => (TextIO.print "Precondition unknown\n"; retry ()) )
+                        | HELP => ( case help of 
                                         SOME _ => ( case pre of
-                                                        SOME _ => (TextIO.print "Precondition already known\n"; step prg pre post history)
-                                                        | NONE => step prg help post history )
+                                                        SOME _ => (TextIO.print "Precondition already known\n"; retry () )
+                                                        | NONE => step prg help post history ) 
                                         | NONE => raise DerivationError "Unknown precondition for HELPED derivation" )
                 end
 
@@ -228,4 +248,4 @@ in
     end
 end
 
-(*val _ : unit = Hoare.main()*)
+val _ : unit = Hoare.main()
