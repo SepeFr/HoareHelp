@@ -25,14 +25,8 @@ List.app (fn s => (print ("Testing: " ^ s ^ "\n"); ignore
 "x := 9; while (x > 0 or x = 0) do (x := x + 1;  y := y * 2)"
                                ];
 
-List.app (fn s => (print ("Testing: " ^ s ^ "\n"); ignore
-(ParseSupport.parsePrintA s))) [
-"(a > b)"
-                               ];
-
-List.app (fn s => (print ("Testing: " ^ s ^ "\n"); ignore
-(ParseSupport.parsePrintA s))) [
-"(a > b)"
-                               ];
-
+let val out = ParseSupport.parsePrintA "(a > b)"
+in
+print (Imp.ASS.toString (Option.valOf out))
+end
 
