@@ -1,6 +1,8 @@
 structure Utils :> UTILS = struct
     fun trim_space str =
-        String.implode (List.filter (fn c : char => not (Char.isSpace c)) (String.explode str))
+        String.implode (List.filter (fn c : char => c <> #" ") (String.explode str))
+    fun trim_newline str =
+        String.implode (List.filter (fn c : char => c <> #"\n") (String.explode str))
 end
 
 structure ANSI =

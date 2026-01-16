@@ -54,7 +54,7 @@ in
             ( case printable of
                 SOME thing => TextIO.print thing (*;TextIO.flushOut TextIO.stdOut*)
                 | NONE => ();
-            Utils.trim_space ( valOf (TextIO.inputLine TextIO.stdIn ) )
+            Utils.trim_newline ( valOf (TextIO.inputLine TextIO.stdIn ) )
             handle Option.Option => (TextIO.print "Empty input, try again\n"; prompt printable) )
 
         fun rule_input () : rule =
@@ -62,7 +62,7 @@ in
                                                 ^ "TRUTH, FALSEHOOD, WEAKENING, STRENGTHENING, AND, OR,\n" 
                                                 ^ "SKIP, ASSIGN, IF, WHILE, COMP,\n" 
                                                 ^ "HELP: "))
-                val upper_trimmed : string = Utils.trim_space (String.map Char.toUpper str)
+                val upper_trimmed : string = Utils.trim_newline (String.map Char.toUpper str)
             in
                 case upper_trimmed of
                     "TRUTH" => logic TRUTH
@@ -125,7 +125,7 @@ in
 
         fun confirm (message : string) : bool =
             let val res : string = prompt (SOME ("Do you confirm that " ^ message ^ "? ([yes]/no)\n"))
-                val upperTrimmed : string = Utils.trim_space (String.map Char.toUpper res)
+                val upperTrimmed : string = Utils.trim_newline (String.map Char.toUpper res)
             in 
                 case upperTrimmed of
                     "YES" => true
@@ -174,13 +174,13 @@ in
                                                             | NONE => (TextIO.print "Precondition unknown\n"; retry () ) )
                                             | _ => raise DerivationError "The program was asked to apply the TRUTH rule where it's inapplicable" )
                         | logic FALSEHOOD => IMP.ASS.f
-                        | logic WEAKENING => ( case help of (*!!!*)
+                        | logic WEAKENING => ( case help of
                                                 SOME h => step prg pre h
                                                 | NONE => raise DerivationError "Unknown precondition for WEAKENING derivation" )
                         | logic STRENGTHENING => ( case pre of
                                                     SOME p => let val res : IMP.ASS.ass = step prg pre post
                                                                 in 
-                                                                    if confirm (IMP.ASS.toString (IMP.ASS.imply(p, res)))
+                                                                    if confirm (IMP.ASS.toString p ^ " ⊃ " ^ IMP.ASS.toString res)
                                                                     then p
                                                                     else retry ()
                                                                 end
