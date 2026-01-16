@@ -6,6 +6,10 @@ use "lib/github.com/diku-dk/sml-parse/Parse.sml";
 use "lib/github.com/diku-dk/sml-parse/SIMPLE_TOKEN.sig";
 use "lib/github.com/diku-dk/sml-parse/SimpleToken.sml";
 
+(* --- Utilities --- *)
+use "signatures/utils.sig";
+use "structures/utils.sml";
+
 (* --- Core language definitions --- *)
 use "signatures/expression.sig";
 use "structures/expression.sml";
@@ -19,9 +23,6 @@ use "structures/imperative.sml";
 (* --- Parsing for IMP --- *)
 use "structures/parse_support.sml";
 
-(* --- Utilities --- *)
-use "signatures/utils.sig";
-use "structures/utils.sml";
 
 (* --- Logic system (Hoare) --- *)
 use "signatures/logic.sig";

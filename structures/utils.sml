@@ -30,4 +30,10 @@ struct
   val Operator = pink
   val Delimiter = purple
   val Boolean = teal
+
+
+  val Error     = red
+  val Caret     = yellow
+  val Location  = blue
+  val Message   = magenta
 end

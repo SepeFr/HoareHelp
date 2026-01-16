@@ -30,6 +30,42 @@ struct
     tokenise { srcname = "stdin", input = input }
 
 
+    (* parser utils *)
+
+  fun repeatChar (c: char) (n: int) : string =
+    String.implode (List.tabulate (Int.max (0, n), fn _ => c))
+
+  fun caretError (input : string) ((lineNo, colNo, src) : Region.loc) (msg :
+    unit -> string) : unit =
+    let
+      val ls = String.fields (fn ch => ch = #"\n") input
+      val lineIdx = lineNo - 1
+      val colIdx = colNo - 1
+      val lineStr = List.nth (ls, lineIdx) handle Subscript => ""
+    in
+      TextIO.print (
+        ANSI.Location ^
+        "From : " ^
+        Region.ppLoc (lineNo, colNo, src) ^
+        ANSI.reset ^ ": " ^
+        ANSI.Error ^ msg () ^
+        ANSI.reset ^ "\n"
+      );
+      TextIO.print (
+        ANSI.gray ^ lineStr ^ ANSI.reset ^ "\n"
+      );
+      TextIO.print (
+        ANSI.gray ^
+        repeatChar #" " colIdx ^
+        ANSI.Caret ^
+        repeatChar #"^" 3 ^
+        ANSI.reset ^ " " ^
+        ANSI.Message ^ msg () ^ ANSI.reset ^ "\n"
+      )
+    end
+
+
+
   structure Parser = Parse(type token = T.token
                       val pp_token = T.pp_token)
   open Parser
@@ -140,7 +176,7 @@ struct
         case Parser.parse (delay parse_expression () <* eof) ts of
              OK e => SOME e
       | NO (loc, msg) =>
-          (print (Region.ppLoc loc ^ ": " ^ msg() ^ "\n");
+        (caretError s loc msg;
            NONE)
     end
 
@@ -153,7 +189,7 @@ struct
           (print ("OK: " ^ Imp.ASS.EXP.toString e ^ "\n");
            SOME e)
       | NO (loc, msg) =>
-          (print (Region.ppLoc loc ^ ": " ^ msg() ^ "\n");
+          (caretError s loc msg;
            NONE)
     end
 
@@ -200,7 +236,7 @@ struct
         case Parser.parse (delay parse_ass() <* eof) ts of
              OK e => SOME e
       | NO (loc, msg) =>
-          (print (Region.ppLoc loc ^ ": " ^ msg() ^ "\n");
+          (caretError s loc msg;
            NONE)
     end
 
@@ -214,7 +250,7 @@ struct
           (print ("OK: " ^ Imp.ASS.toString e ^ "\n");
            SOME e)
       | NO (loc, msg) =>
-          (print (Region.ppLoc loc ^ ": " ^ msg() ^ "\n");
+          (caretError s loc msg;
            NONE)
     end
 
@@ -250,6 +286,7 @@ struct
       <|> (parens (delay parse_program ()))
 
 
+
     fun parseImpString (s: string) : Imp.program option =
       let
         val ts = fromString s
@@ -257,7 +294,7 @@ struct
         case Parser.parse (delay parse_program() <* eof) ts of
              OK e => SOME e
       | NO (loc, msg) =>
-          (print (Region.ppLoc loc ^ ": " ^ msg() ^ "\n");
+        (caretError s loc msg;
            NONE)
     end
 
@@ -271,7 +308,9 @@ struct
           (print ("OK: \n" ^ Imp.toString e ^ "\n");
            SOME e)
       | NO (loc, msg) =>
-          (print (Region.ppLoc loc ^ ": " ^ msg() ^ "\n");
+           (caretError s loc msg;
            NONE)
+
     end
+
 end
