@@ -13,5 +13,5 @@ signature ASSERTION = sig
     val subst : ass -> string -> EXP.exp -> ass
     val toString : ass -> string
     val parse : string -> ass option
-    val isMore : (ass) -> (EXP.exp * EXP.exp) option
+    val isMore : ass -> (EXP.exp * EXP.exp) option
 end

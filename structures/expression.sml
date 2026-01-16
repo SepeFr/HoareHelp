@@ -30,6 +30,8 @@ structure Exp :> EXPRESSION = struct
         | normalize (neg (times (exp1, exp2))) = times (neg (normalize exp1), normalize exp2)
         | normalize (neg (neg exp)) = normalize exp
         | normalize (neg (inv exp)) = inv (neg (normalize exp))
+        | normalize (inv (k 1)) = k 1
+        | normalize (inv (k ~1)) = k ~1
         | normalize (inv (times (exp1, exp2))) = times (normalize exp1, inv (normalize
         exp2))
         | normalize (inv (inv exp)) = normalize exp

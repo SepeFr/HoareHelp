@@ -43,27 +43,45 @@ structure Ass :> ASSERTION = struct
         | subst (eq (exp1, exp2)) name new = eq (EXP.subst exp1 name new, EXP.subst exp2 name new)
 
 
-    fun normalize (eq (exp1, exp2) : ass) : ass = if exp1 = exp2
-                                                    then t
-                                                    else eq (exp1, exp2)
-        | normalize (imply (t, ass)) = normalize ass
-        | normalize (imply (_, t)) = t
-        | normalize (imply (f, _)) = t
-        | normalize (imply (ass1, ass2)) = imply (normalize ass1, normalize ass2)
-        | normalize c = c
+    fun normalize (ass : ass) : ass = 
+        ( case isAndd ass of 
+                SOME (assn, t) => assn
+                | SOME (t, assn) => assn
+                | SOME (f, _) => f
+                | SOME (_, f) => f
+                | SOME (ass1, ass2) => if ass1 = ass2
+                                        then ass1 else andd ass1 ass2
+                | NONE => ( case isOrr ass of
+                            SOME (_, t) => t
+                            | SOME (t, _) => t
+                            | SOME (f, assn) => assn
+                            | SOME (assn, f) => assn
+                            | SOME (ass1, ass2) => if ass1 = ass2
+                                        then ass1 else orr ass1 ass2
+                            | NONE => ( case isNot ass of 
+                                            SOME assn => ( case isNot assn of
+                                                            SOME assn2 => assn2
+                                                            | NONE => not assn )
+                                            | NONE => ( case ass of
+                                                        eq (exp1, exp2) => if exp1 = exp2  then t else eq (exp1, exp2)
+                                                        | imply (t, assn) => normalize assn
+                                                        | imply (_, t) => t
+                                                        | imply (f, _) => t
+                                                        | imply (ass1, ass2) => imply (normalize ass1, normalize ass2)
+                                                        | c => c ))))
 
     fun toString_sub (ass : ass) : string =
         ( case isMore ass of
             SOME (exp1, exp2) => EXP.toString exp1 ^ " > " ^ EXP.toString exp2
             | NONE =>
-                ( case isNot ass of
-                    SOME assn => "¬( " ^ toString_sub assn ^ " )"
+                ( case isAndd ass of
+                    SOME (ass1, ass2) => "( " ^ toString_sub ass1 ^ " ) ∧ ( " ^ toString_sub ass2 ^ " )"
                     | NONE =>
                         ( case isOrr ass of
                             SOME (ass1, ass2) => "( " ^ toString_sub ass1 ^ " ) ∨ ( " ^ toString_sub ass2 ^ " )"
                             | NONE =>
-                                ( case isAndd ass of
-                                    SOME (ass1, ass2) => "( " ^ toString_sub ass1 ^ " ) ∧ ( " ^ toString_sub ass2 ^ " )"
+                                ( case isNot ass of
+                                    SOME assn => "¬( " ^ toString_sub assn ^ " )"
                                     | NONE =>
                                         ( case ass of
                                             t => "TRUE"
