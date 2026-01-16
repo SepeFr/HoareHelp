@@ -182,7 +182,8 @@ in
                 in (derive prg pre post; parallel (begin @ endd)) end
 
         fun get_program_str () : string =
-            let val input : string = valOf (TextIO.inputLine TextIO.stdIn)
+            (*let val input : string = valOf (TextIO.inputLine TextIO.stdIn)*)
+            let val input : string =  (Option.getOpt (TextIO.inputLine TextIO.stdIn, "NONE\n"))
             in
                 case Utils.trim_space input of
                     "ENDPROGRAM" => ""
