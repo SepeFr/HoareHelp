@@ -27,10 +27,11 @@ in
         fun subgoals (nil : der_chain) (_ : int) : unit = ()
             | subgoals (node :: l) idx = (consume_goal node idx; subgoals l (idx + 1))
 
-        fun numeric_input () : int = valOf (Int.fromString (valOf (TextIO.inputLine TextIO.stdIn)))
-                                    handle Option.Option => ( TextIO.print "Wrong input, try again\n";
-                                                                numeric_input () ) (* viene gestita solo l'espressione
-                                                                            più esterna (?) *)
+        fun numeric_input () : int = ( case TextIO.inputLine TextIO.stdIn of
+                                        SOME thing => ( valOf (Int.fromString thing)
+                                                        handle Option.Option => ( TextIO.print "Wrong input, try again\n";
+                                                             numeric_input () ))
+                                        | NONE => numeric_input () )
 
         fun next_goal (der_list : der_chain) : int =
             ( subgoals der_list 1;
@@ -41,11 +42,17 @@ in
                 else ( TextIO.print "Input number out of range, try again\n"; next_goal der_list)
             end )
 
+        fun prompt (printable : string option): string =
+            (( case printable of
+                SOME thing => TextIO.print thing
+                | NONE => () );
+            valOf (TextIO.inputLine TextIO.stdIn) 
+            handle Option.Option => ("Empty input, try again\n"; prompt printable ) )
+
         fun rule_input () : rule =
-            let val str : string = ( TextIO.print ("Choose derivation rule to follow, from\n"
+            let val str : string = prompt (SOME ("Choose derivation rule to follow, from\n"
                                                 ^ "TRUTH, FALSEHOOD, WEAKENING, STRENGTHENING\n"
-                                                ^ "AND, OR, PROGRAM: ");
-                                    valOf (TextIO.inputLine TextIO.stdIn) )
+                                                ^ "AND, OR, PROGRAM: "))
                 val upper_trimmed : string = Utils.trim_space (String.map Char.toUpper str)
             in
                 case upper_trimmed of
@@ -60,7 +67,7 @@ in
             end
 
         fun assertion_input () : IMP.ASS.ass =
-            valOf (parseAssString (valOf (TextIO.inputLine TextIO.stdIn)))
+            valOf (parseAssString (prompt NONE))
                 handle Option.Option => ( TextIO.print "Unparseable assertion, try again\n";
                                                                 assertion_input () )
 
@@ -182,8 +189,7 @@ in
                 in (derive prg pre post; parallel (begin @ endd)) end
 
         fun get_program_str () : string =
-            (*let val input : string = valOf (TextIO.inputLine TextIO.stdIn)*)
-            let val input : string =  (Option.getOpt (TextIO.inputLine TextIO.stdIn, "NONE\n"))
+            let val input : string = prompt NONE
             in
                 case Utils.trim_space input of
                     "ENDPROGRAM" => ""
