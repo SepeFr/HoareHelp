@@ -139,7 +139,7 @@ in
                     | NONE => [(prg, pre, post)]
 
         fun confirm (message : string) : bool =
-            let val res : string = prompt (SOME ("Do you confirm that " ^ message ^ "? ([yes]/no)\n"))
+            let val res : string = prompt (SOME ("Do you confirm that " ^ message ^ "? (yes/no)\n"))
                 val upperTrimmed : string = Utils.trim_newline (String.map Char.toUpper res)
             in
                 case upperTrimmed of
@@ -177,8 +177,7 @@ in
                                     | IMP.while_do (q, c) => ( case pre of
                                                                 SOME p => if confirm (IMP.ASS.toString (IMP.ASS.andd p (IMP.ASS.not q))
                                                                                         ^ " ≡ " ^ IMP.ASS.toString post)
-                                                                            then (parallel [(c, IMP.ASS.andd p q, p),
-                                                                                        (IMP.skip, IMP.ASS.andd p (IMP.ASS.not q), post)]; p)
+                                                                            then (derive c (IMP.ASS.andd p q) p; p)
                                                                             else retry ()
                                                                 | NONE => (TextIO.print "Precondition unknown\n"; retry () ) )
                                     )
@@ -201,7 +200,7 @@ in
                                                                 end
                                                     | NONE => (TextIO.print "Precondition unknown\n"; retry ()) )
                         | logic AND => ( case pre of
-                                            SOME p => ( parallel (distribute_or prg p post); p )
+                                            SOME p => ( parallel (distribute_and prg p post); p )
                                             | NONE => (TextIO.print "Precondition unknown\n"; retry ()) )
                         | logic OR => ( case pre of
                                             SOME p => ( parallel (distribute_or prg p post); p )
@@ -280,4 +279,5 @@ in
     end
 end
 
-val _ : unit = Hoare.main()
+val _ : unit = ( Hoare.main(); 
+                TextIO.print "QED\n")

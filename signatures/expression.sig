@@ -5,5 +5,6 @@ signature EXPRESSION = sig
 
     val expn : exp -> int -> exp
     val subst : exp -> string -> exp -> exp
+    val normalize : exp -> exp
     val toString : exp -> string
 end
