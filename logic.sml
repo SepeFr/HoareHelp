@@ -19,23 +19,30 @@ in
         type weak_chain = weak_triple list
 
         fun string_goal (prg : IMP.program, pre : IMP.ASS.ass, post : IMP.ASS.ass) : string =
-            "{" ^ IMP.ASS.toString pre ^ "} " ^ IMP.toString prg ^ " {" ^ IMP.ASS.toString post ^ "}"
+            id "Pre-Condition : " ^ "{ " ^ IMP.ASS.toString pre ^ " }\n" ^
+            IMP.toString prg ^ "\n" ^
+            id "Post-Condition :" ^ "{ " ^ IMP.ASS.toString post ^ " }"
 
         fun consume_goal (triple : triple) (idx : int) : unit =
             TextIO.print (Int.toString idx ^ " )\t" ^ string_goal triple ^ "\n")
 
         fun current_goal (prg : IMP.program) (pre : IMP.ASS.ass option) (post : IMP.ASS.ass) : unit =
-            TextIO.print ("Current subgoal:\t" ^ 
-                            ( case pre of 
-                                SOME p => string_goal (prg, p, post) 
-                                | NONE => "??? " ^ IMP.toString prg ^ " {" ^ IMP.ASS.toString post ^ "}" ) ^ "\n")
+            TextIO.print (
+                        "Current subgoal\n" ^
+                            ( case pre of
+                                SOME p => string_goal (prg, p, post)
+                                | NONE =>
+                                  id "Pre-Condition : " ^ "{ ??? }\n" ^
+                                  IMP.toString prg ^ "\n" ^
+                                  id "Post-Condition :" ^ "{ " ^ IMP.ASS.toString post ^ " }"
+                                ))
 
         fun subgoals (nil : der_chain) (_ : int) : unit = ()
             | subgoals (node :: l) idx = (consume_goal node idx; subgoals l (idx + 1))
 
         fun numeric_input () : int = ( case TextIO.inputLine TextIO.stdIn of
                                         SOME thing => ( valOf (Int.fromString thing)
-                                                        handle Option.Option => 
+                                                        handle Option.Option =>
                                                             ( TextIO.print "Wrong input, try again\n";
                                                                 numeric_input () ) )
                                         | NONE => numeric_input () )
@@ -58,10 +65,18 @@ in
             handle Option.Option => (TextIO.print "Empty input, try again\n"; prompt printable) )
 
         fun rule_input () : rule =
-            let val str : string = prompt (SOME ("Choose derivation rule to follow, from\n"
-                                                ^ "TRUTH, FALSEHOOD, WEAKENING, STRENGTHENING, AND, OR,\n" 
-                                                ^ "SKIP, ASSIGN, IF, WHILE, COMP,\n" 
-                                                ^ "HELP: "))
+            let val str : string = prompt (SOME (
+                "\nChoose derivation rule\n" ^
+                id "Logical rules: " ^
+                "  " ^ kw "TRUTH" ^ ", " ^ kw "FALSEHOOD" ^ ", " ^ kw "WEAKENING" ^ ", " ^
+                      kw "STRENGTHENING" ^ ", " ^ kw "AND" ^ ", " ^ kw "OR" ^ "\n" ^
+                id "Program rules: " ^
+                "  " ^ kw "SKIP" ^ ", " ^ kw "ASSIGN" ^ ", " ^ kw "IF" ^ ", " ^
+                      kw "WHILE" ^ ", " ^ kw "COMP" ^ "\n" ^
+                id "Other: " ^
+                "  " ^ kw "HELP" ^ "\n" ^
+                "Your choice: "
+                                                ))
                 val upper_trimmed : string = Utils.trim_newline (String.map Char.toUpper str)
             in
                 case upper_trimmed of
@@ -73,8 +88,8 @@ in
                     | "OR" => logic OR
                     | "SKIP" => program SKIP
                     | "ASSIGN" => program ASSIGN
-                    | "IF" => program IF 
-                    | "WHILE" => program WHILE 
+                    | "IF" => program IF
+                    | "WHILE" => program WHILE
                     | "COMP" => program COMP
                     | "HELP" => HELP
                     | _ => (TextIO.print "Undefined rule, try again\n"; rule_input ())
@@ -106,9 +121,9 @@ in
                 | logic TRUTH => ( case post of
                                     IMP.ASS.t => (logic TRUTH, NONE)
                                     | _ => ( TextIO.print "Unapplicable rule, try again\n"; interact fragment post block ) )
-                | logic WEAKENING => (logic WEAKENING, 
+                | logic WEAKENING => (logic WEAKENING,
                             SOME (TextIO.print ("Please input a Q such that\nQ ⊃ " ^ IMP.ASS.toString post ^ ":\n"); assertion_input ()) )
-                | HELP => if block 
+                | HELP => if block
                             then (TextIO.print "Unapplicable rule, try again\n"; interact fragment post block)
                             else (HELP, SOME ( TextIO.print "Please input a plausible precondition for the current step:\n"; assertion_input () ))
                 | els => (els, NONE)
@@ -126,14 +141,14 @@ in
         fun confirm (message : string) : bool =
             let val res : string = prompt (SOME ("Do you confirm that " ^ message ^ "? ([yes]/no)\n"))
                 val upperTrimmed : string = Utils.trim_newline (String.map Char.toUpper res)
-            in 
+            in
                 case upperTrimmed of
                     "YES" => true
                     | "NO" => false
                     | _ => (TextIO.print "Wrong input, try again\n"; confirm message)
             end
 
-        fun derive prog pre post = 
+        fun derive prog pre post =
             let val result : IMP.ASS.ass = (step prog (SOME pre) post)
             in
                 if IMP.ASS.toString pre = IMP.ASS.toString result
@@ -179,22 +194,22 @@ in
                                                 | NONE => raise DerivationError "Unknown precondition for WEAKENING derivation" )
                         | logic STRENGTHENING => ( case pre of
                                                     SOME p => let val res : IMP.ASS.ass = step prg pre post
-                                                                in 
+                                                                in
                                                                     if confirm (IMP.ASS.toString p ^ " ⊃ " ^ IMP.ASS.toString res)
                                                                     then p
                                                                     else retry ()
                                                                 end
                                                     | NONE => (TextIO.print "Precondition unknown\n"; retry ()) )
-                        | logic AND => ( case pre of 
+                        | logic AND => ( case pre of
                                             SOME p => ( parallel (distribute_or prg p post); p )
                                             | NONE => (TextIO.print "Precondition unknown\n"; retry ()) )
-                        | logic OR => ( case pre of 
+                        | logic OR => ( case pre of
                                             SOME p => ( parallel (distribute_or prg p post); p )
                                             | NONE => (TextIO.print "Precondition unknown\n"; retry ()) )
-                        | HELP => ( case help of 
+                        | HELP => ( case help of
                                         SOME _ => ( case pre of
                                                         SOME _ => (TextIO.print "Precondition already known\n"; retry () )
-                                                        | NONE => step prg help post ) (* derive prg h post; h *) 
+                                                        | NONE => step prg help post ) (* derive prg h post; h *)
                                         | NONE => raise DerivationError "Unknown precondition for HELPED derivation" )
                 end
 
@@ -218,23 +233,47 @@ in
 
         fun main () : unit =
             let val prog : IMP.program = (
-                    TextIO.print "HoareHelp - Matteo & Francesco 2025\n";
-                    TextIO.print "Welcome to the HoareHelp proof helper,\n";
-                    TextIO.print "please input a program written in the Imp (While) language,\n";
-                    TextIO.print "ending with the line \"ENDPROGRAM\"\n";
+                    TextIO.print (
+                      ANSI.Delimiter ^
+                      "──────────────────────────────────────────────\n" ^
+                      ANSI.Keyword ^ "HoareHelp" ^
+                      ANSI.gray ^ " - Hoare Logic Proof Assistant\n" ^
+                      ANSI.Identifier ^ "Matteo & Francesco (2025)\n" ^
+                      ANSI.Delimiter ^
+                      "──────────────────────────────────────────────\n" ^
+                      ANSI.reset
+                    );
+
+                      TextIO.print (
+                        ANSI.Identifier ^
+                        "Welcome to the HoareHelp proof helper.\n" ^
+                        ANSI.reset ^
+                        "Please input a program written in the " ^
+                        ANSI.Keyword ^ "Imp (While)" ^
+                        ANSI.reset ^ " language,\n" ^
+                        "ending with the line " ^
+                        ANSI.Operator ^ "\"ENDPROGRAM\"" ^
+                        ANSI.reset ^ ".\n\n"
+                      );
                     get_program ()
                 )
                 val pre : IMP.ASS.ass = (
-                    TextIO.print "Got it, now please input a precondition for such program:\n";
+                    TextIO.print ("Got Program\n" ^
+                    Imp.toString prog ^ "\n");
+                    (TextIO.print "now please input a precondition for such program:\n");
                     assertion_input ()
                 )
                 val post : IMP.ASS.ass = (
-                    TextIO.print "Got it, now please input a postcondition:\n";
+                    TextIO.print ("Got Pre-Condition\n" ^
+                    Imp.ASS.toString pre ^ "\n");
+                    TextIO.print "now please input a postcondition:\n";
                     assertion_input ()
                 )
             in
                 (
-                    TextIO.print "Great, the proofing subroutine will now be started.\n";
+                    TextIO.print ("Got Post-Condition\n" ^
+                    Imp.ASS.toString post ^ "\n");
+                    TextIO.print "Great, the proofing subroutine will now be started.\n\n";
                     derive prog pre post
                 )
             end
