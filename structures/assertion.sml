@@ -63,7 +63,8 @@ structure Ass :> ASSERTION = struct
                                                             SOME assn2 => assn2
                                                             | NONE => not assn )
                                             | NONE => ( case ass of
-                                                        eq (exp1, exp2) => if exp1 = exp2  then t else eq (exp1, exp2)
+                                                        eq (exp1, exp2) => if EXP.toString exp1 = EXP.toString exp2  
+                                                            then t else eq (exp1, exp2)
                                                         | imply (t, assn) => normalize assn
                                                         | imply (_, t) => t
                                                         | imply (f, _) => t
