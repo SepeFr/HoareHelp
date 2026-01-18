@@ -28,7 +28,7 @@ in
 
         fun current_goal (prg : IMP.program) (pre : IMP.ASS.ass option) (post : IMP.ASS.ass) : unit =
             TextIO.print (
-                        "Current subgoal\n" ^
+                        "\nCurrent subgoal\n" ^
                             ( case pre of
                                 SOME p => string_goal (prg, p, post)
                                 | NONE =>
@@ -72,7 +72,7 @@ in
                       kw "STRENGTHENING" ^ ", " ^ kw "AND" ^ ", " ^ kw "OR" ^ "\n" ^
                 id "Program rules: " ^
                 "  " ^ kw "SKIP" ^ ", " ^ kw "ASSIGN" ^ ", " ^ kw "IF" ^ ", " ^
-                      kw "WHILE" ^ ", " ^ kw "COMP" ^ "\n" ^
+                      kw "WHILE" ^ ", " ^ kw "COMPOSITION" ^ "\n" ^
                 id "Other: " ^
                 "  " ^ kw "HELP" ^ "\n" ^
                 "Your choice: "
@@ -90,7 +90,7 @@ in
                     | "ASSIGN" => program ASSIGN
                     | "IF" => program IF
                     | "WHILE" => program WHILE
-                    | "COMP" => program COMP
+                    | "COMPOSITION" => program COMP
                     | "HELP" => HELP
                     | _ => (TextIO.print "Undefined rule, try again\n"; rule_input ())
             end
@@ -173,19 +173,19 @@ in
                                     | IMP.if_then_else (q, c1, c2) => ( case pre of
                                                                             SOME p => (parallel [(c1, IMP.ASS.andd p q, post),
                                                                                                     (c2, IMP.ASS.andd p (IMP.ASS.not q), post)]; p)
-                                                                            | NONE =>  (TextIO.print "Precondition unknown\n"; retry () ) )
+                                                                            | NONE =>  (TextIO.print (err "Precondition unknown\n"); retry () ) )
                                     | IMP.while_do (q, c) => ( case pre of
                                                                 SOME p => if confirm (IMP.ASS.toString (IMP.ASS.andd p (IMP.ASS.not q))
                                                                                         ^ " ≡ " ^ IMP.ASS.toString post)
                                                                             then (derive c (IMP.ASS.andd p q) p; p)
                                                                             else retry ()
-                                                                | NONE => (TextIO.print "Precondition unknown\n"; retry () ) )
+                                                                | NONE => (TextIO.print (err "Precondition unknown\n"); retry () ) )
                                     )
                         | program _ => raise DerivationError "Program failure in \"step\" function"
                         | logic TRUTH => ( case post of
                                             IMP.ASS.t => ( case pre of
                                                             SOME p => p
-                                                            | NONE => (TextIO.print "Precondition unknown\n"; retry () ) )
+                                                            | NONE => (TextIO.print (err "Precondition unknown\n"); retry () ) )
                                             | _ => raise DerivationError "The program was asked to apply the TRUTH rule where it's inapplicable" )
                         | logic FALSEHOOD => IMP.ASS.f
                         | logic WEAKENING => ( case help of
@@ -198,16 +198,16 @@ in
                                                                     then p
                                                                     else retry ()
                                                                 end
-                                                    | NONE => (TextIO.print "Precondition unknown\n"; retry ()) )
+                                                    | NONE => (TextIO.print (err "Precondition unknown\n"); retry ()) )
                         | logic AND => ( case pre of
                                             SOME p => ( parallel (distribute_and prg p post); p )
-                                            | NONE => (TextIO.print "Precondition unknown\n"; retry ()) )
+                                            | NONE => (TextIO.print (err "Precondition unknown\n"); retry ()) )
                         | logic OR => ( case pre of
                                             SOME p => ( parallel (distribute_or prg p post); p )
-                                            | NONE => (TextIO.print "Precondition unknown\n"; retry ()) )
+                                            | NONE => (TextIO.print (err "Precondition unknown\n"); retry ()) )
                         | HELP => ( case help of
                                         SOME _ => ( case pre of
-                                                        SOME _ => (TextIO.print "Precondition already known\n"; retry () )
+                                                        SOME _ => (TextIO.print (err "Precondition already known\n"); retry () )
                                                         | NONE => step prg help post ) (* derive prg h post; h *)
                                         | NONE => raise DerivationError "Unknown precondition for HELPED derivation" )
                 end
@@ -279,5 +279,5 @@ in
     end
 end
 
-val _ : unit = ( Hoare.main(); 
-                TextIO.print "QED\n")
+val _ : unit = ( Hoare.main();
+                QED.rainbow_qed() )
