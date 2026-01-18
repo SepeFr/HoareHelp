@@ -5,13 +5,6 @@ structure Utils :> UTILS = struct
         String.implode (List.filter (fn c : char => c <> #"\n") (String.explode str))
 end
 
-structure Utils :> UTILS = struct
-    fun trim_space str =
-        String.implode (List.filter (fn c : char => c <> #" ") (String.explode str))
-    fun trim_newline str =
-        String.implode (List.filter (fn c : char => c <> #"\n") (String.explode str))
-end
-
 structure ANSI =
 struct
   val reset = "\027[0m"
@@ -66,7 +59,7 @@ struct
 
   fun rainbow_qed() =
   let
-    val text = "Congratulations! You Successfully Concluded The Proof 𝔔.𝔈.𝔇."
+    val text = "Congratulations! You Successfully Concluded The Proof Q.E.D."
     val text_length = size text
     val num_of_colors = length colors
 

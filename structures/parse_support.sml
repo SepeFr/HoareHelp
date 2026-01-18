@@ -45,7 +45,7 @@ struct
     in
       TextIO.print (
         ANSI.Location ^
-        "From : " ^
+        "From : " ^ 
         Region.ppLoc (lineNo, colNo, src) ^
         ANSI.reset ^ ": " ^
         ANSI.Error ^ msg () ^

@@ -12,11 +12,6 @@ structure Imp :> IMPERATIVE = struct
         | toString (while_do (b, p)) = "while (" ^ ASS.toString b ^ ") do {" ^
         toString p ^ "}"*)
 
-    fun kw s  = ANSI.Keyword ^ s ^ ANSI.reset
-    fun id s  = ANSI.Identifier ^ s ^ ANSI.reset
-    fun num s = ANSI.Number ^ s ^ ANSI.reset
-    fun ope s  = ANSI.Operator ^ s ^ ANSI.reset
-    fun par s = ANSI.Delimiter ^ s ^ ANSI.reset
 
     fun toString prog =
     let

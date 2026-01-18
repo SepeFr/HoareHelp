@@ -3,6 +3,5 @@ in
   expression.sig
   assertion.sig
   imperative.sig
-  logic.sig
   utils.sig
 end
